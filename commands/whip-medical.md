@@ -21,7 +21,7 @@ allowed-tools: [
 ## Step 1: Setup
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/core/setup.sh" --skill whip-medical $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/scripts/core/setup.sh" --skill whip-medical "$ARGUMENTS"
 ```
 
 ## Step 2: Execute as Manager

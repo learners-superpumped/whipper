@@ -25,6 +25,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 PROMPT="${PROMPT_PARTS[*]:-}"
+
+# Handle --max-iterations embedded in prompt (when $ARGUMENTS was quoted as single string)
+if [[ "$PROMPT" =~ --max-iterations[[:space:]]+([0-9]+) ]]; then
+  MAX_ITERATIONS="${BASH_REMATCH[1]}"
+  PROMPT="${PROMPT/--max-iterations ${BASH_REMATCH[1]}/}"
+  PROMPT="$(echo "$PROMPT" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')"
+fi
+
+# Handle --notion embedded in prompt
+if [[ "$PROMPT" == *"--notion"* ]]; then
+  PROMPT="${PROMPT/--notion/}"
+  PROMPT="$(echo "$PROMPT" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')"
+fi
+
 [[ -z "$PROMPT" ]] && echo "❌ No prompt provided" >&2 && exit 1
 
 # Generate task slug from prompt (first 30 chars, sanitized)

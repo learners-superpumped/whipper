@@ -24,7 +24,7 @@ allowed-tools: [
 Run the setup script:
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/core/setup.sh" --skill whip $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/scripts/core/setup.sh" --skill whip "$ARGUMENTS"
 ```
 
 ## Step 2: Load Manager Instructions

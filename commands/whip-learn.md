@@ -29,7 +29,7 @@ source "${CLAUDE_PLUGIN_ROOT}/scripts/core/api-keys.sh" && check_required_keys "
 ## Step 2: Setup
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/core/setup.sh" --skill whip-learn $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/scripts/core/setup.sh" --skill whip-learn "$ARGUMENTS"
 ```
 
 ## Step 3: Execute as Manager
