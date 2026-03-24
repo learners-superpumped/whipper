@@ -1,0 +1,10 @@
+{
+  "database_id": "",
+  "status_mapping": {
+    "queued": "진행예정",
+    "in_progress": "진행중",
+    "completed": "완료",
+    "dropped": "드랍",
+    "blocked": "블락드"
+  }
+}
