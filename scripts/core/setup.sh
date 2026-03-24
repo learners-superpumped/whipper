@@ -44,9 +44,10 @@ fi
 # Generate task slug from prompt (first 30 chars, sanitized)
 SLUG=$(printf '%s' "$PROMPT" | cut -c1-30 | sed 's/[^a-zA-Z0-9가-힣]/-/g' | sed 's/--*/-/g' | sed 's/-$//')
 DATE=$(date +%Y-%m-%d)
-TASK_DIR=".whipper/tasks/${DATE}-${SLUG}"
+TASK_ID="${DATE}-${SLUG}"
+TASK_DIR="/tmp/whipper-${TASK_ID}"
 
-# Create task folder structure
+# Create task folder structure (in /tmp/, cleaned up on completion)
 mkdir -p "$TASK_DIR/iterations" "$TASK_DIR/deliverables" "$TASK_DIR/resources"
 
 # Create state file
@@ -59,7 +60,9 @@ iteration: 1
 max_iterations: $MAX_ITERATIONS
 session_id: ${CLAUDE_CODE_SESSION_ID:-}
 started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+task_id: "$TASK_ID"
 task_dir: "$TASK_DIR"
+notion_page_id: ""
 status: running
 ---
 
@@ -73,13 +76,12 @@ mkdir -p "$(dirname "$GLOBAL_INDEX")"
 
 # Append entry to global index
 TEMP=$(mktemp)
-jq --arg id "${DATE}-${SLUG}" \
+jq --arg id "$TASK_ID" \
    --arg cmd "$PROMPT" \
    --arg skill "$SKILL" \
    --arg project "$PWD" \
-   --arg path "$PWD/$TASK_DIR" \
    --arg started "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-   '. += [{id: $id, command: $cmd, skill: $skill, project: $project, path: $path, started_at: $started, finished_at: null, iterations: 0, result: "running"}]' \
+   '. += [{id: $id, command: $cmd, skill: $skill, project: $project, started_at: $started, finished_at: null, iterations: 0, result: "running"}]' \
    "$GLOBAL_INDEX" > "$TEMP" && mv "$TEMP" "$GLOBAL_INDEX"
 
 # Output
@@ -87,7 +89,7 @@ cat <<EOF
 🔥 Whipper activated!
 
 Skill: $SKILL
-Task: $TASK_DIR
+Task ID: $TASK_ID
 Iteration: 1
 Max iterations: $(if [[ $MAX_ITERATIONS -gt 0 ]]; then echo $MAX_ITERATIONS; else echo "unlimited"; fi)
 
