@@ -1,6 +1,6 @@
 {
   "name": "whipper",
-  "description": "Manager-Executor loop plugin. Defines success criteria, executes via subagents, evaluates ruthlessly, iterates until passed.",
+  "description": "Manager-Executor loop with Slack bot and Notion workspace. Real-time Slack interaction, Notion dashboard and publishing, ruthless evaluation.",
   "author": {
     "name": "nevermind"
   }
