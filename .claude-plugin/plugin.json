@@ -1,0 +1,7 @@
+{
+  "name": "whipper",
+  "description": "Manager-Executor loop plugin. Defines success criteria, executes via subagents, evaluates ruthlessly, iterates until passed.",
+  "author": {
+    "name": "nevermind"
+  }
+}

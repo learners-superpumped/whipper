@@ -1,0 +1,12 @@
+{
+  "name": "whipper",
+  "owner": {
+    "name": "nevermind"
+  },
+  "plugins": [
+    {
+      "name": "whipper",
+      "source": "./"
+    }
+  ]
+}

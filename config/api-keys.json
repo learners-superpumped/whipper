@@ -1,0 +1,14 @@
+{
+  "openai": {
+    "env_var": "WHIPPER_OPENAI_API_KEY",
+    "fallback": "CALLME_OPENAI_API_KEY",
+    "required_by": ["whip-think", "whip-research"],
+    "description": "OpenAI API (GPT thinking + deep research)"
+  },
+  "gemini": {
+    "env_var": "WHIPPER_GEMINI_API_KEY",
+    "fallback": "GEMINI_API_KEY",
+    "required_by": ["whip-think", "whip-research", "whip-learn"],
+    "description": "Google Gemini API"
+  }
+}

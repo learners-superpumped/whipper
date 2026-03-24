@@ -1,0 +1,13 @@
+{
+  "think": {
+    "gemini": "gemini-2.5-pro",
+    "openai": "o3"
+  },
+  "research": {
+    "gemini": "deep-research-pro-preview-12-2025",
+    "openai": "o3-deep-research"
+  },
+  "learn": {
+    "gemini": "gemini-2.5-pro"
+  }
+}
