@@ -47,8 +47,9 @@
 - 각 Worker에도 이 실행 지침의 절대 원칙을 전달
 
 ## 산출물 저장
-- 최종 산출물 → {task_dir}/deliverables/
-- 수집 자료/스크린샷/참조 파일 → {task_dir}/resources/
+- 최종 산출물 → {task_dir}/deliverables/ (텍스트 파일)
+- 이미지/스크린샷/GIF → {task_dir}/resources/ (완료 시 Manager가 catbox.moe 업로드 후 Notion에 퍼블리시)
+- 대용량 파일이 있으면 resources/에 저장 (Manager가 처리)
 
 ## 결과 반환
 작업 완료 시 반드시 다음을 포함하여 반환:

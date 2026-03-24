@@ -7,13 +7,19 @@ allowed-tools: [
   "Write",
   "Edit",
   "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*:*)",
+  "Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/*:*)",
   "Bash(test -f *:*)",
   "Bash(sed *:*)",
   "Bash(cat *:*)",
   "Bash(mkdir *:*)",
   "Bash(chmod *:*)",
   "WebSearch",
-  "WebFetch"
+  "WebFetch",
+  "mcp__claude_ai_Notion__notion-create-pages",
+  "mcp__claude_ai_Notion__notion-update-page",
+  "mcp__claude_ai_Notion__notion-fetch",
+  "mcp__claude_ai_Notion__notion-query-database-view",
+  "mcp__claude_ai_Notion__notion-search"
 ]
 ---
 
