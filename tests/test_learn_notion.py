@@ -16,8 +16,10 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
-SKILL_DIR = os.path.expanduser("~/.claude/skills/youtube-to-notion/scripts")
+ROOT = Path(__file__).resolve().parent.parent
+SKILL_DIR = str(ROOT / "scripts" / "learn")
 STUDY_NOTES_DIR = "/tmp/yt_study_notes"
 NOTION_MD_DIR = "/tmp/notion_md"
 

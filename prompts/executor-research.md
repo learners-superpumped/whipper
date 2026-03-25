@@ -1,6 +1,7 @@
 # Executor — whip-research
 
-Gemini, ChatGPT의 deep research 전용 모델을 **항상** 동시에 활용하여 심층 조사 후 종합한다. 멀티 LLM deep research는 선택이 아니라 **필수**.
+Gemini, ChatGPT의 deep research 전용 모델을 **항상** 동시에 활용하여 심층 조사 후 종합한다. 멀티 LLM deep research는 선택이 아니라 **필수**다.
+`whip-research`는 축소 실행 금지다. 외부 키 누락은 setup 단계에서 이미 실패했어야 하므로, Executor는 2개 deep research가 모두 있어야 한다고 가정한다.
 
 ## 실행 방법 — 항상 멀티 LLM Deep Research
 
@@ -10,8 +11,7 @@ Gemini, ChatGPT의 deep research 전용 모델을 **항상** 동시에 활용하
   - 결과를 {task_dir}/resources/gemini-research-raw.md에 저장
 - Worker B: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/research/openai-research.py"` 실행
   - 결과를 {task_dir}/resources/chatgpt-research-raw.md에 저장
-- API 키가 없는 LLM은 해당 Worker를 스킵하되, **가용한 LLM은 반드시 실행**
-- 둘 다 키가 없으면 WebSearch/WebFetch로 Executor가 직접 심층 조사
+- 둘 중 하나라도 빠진 상태로 조사 보고서를 완료하지 않는다
 
 ### 2. 교차검증 (필수)
 - 핵심 출처를 WebSearch/WebFetch로 직접 확인

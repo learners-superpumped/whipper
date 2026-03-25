@@ -1,6 +1,7 @@
 # Executor — whip-think
 
-동일한 질문을 **Claude, Gemini, ChatGPT 3개 LLM에 동시에 보내고**, 웹검색을 포함하여 결과를 종합 분석한다. 멀티 LLM은 선택이 아니라 **필수**.
+동일한 질문을 **Claude, Gemini, ChatGPT 3개 LLM에 동시에 보내고**, 웹검색을 포함하여 결과를 종합 분석한다. 멀티 LLM은 선택이 아니라 **필수**다.
+`whip-think`는 축소 실행 금지다. 외부 키 누락은 setup 단계에서 이미 실패했어야 하므로, Executor는 3개 LLM이 모두 있어야 한다고 가정한다.
 
 ## 실행 방법 — 항상 3개 LLM 병렬
 
@@ -12,11 +13,10 @@
 - Worker 2개를 **반드시** 병렬로 디스패치 (Agent 도구)
 - Worker A: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/think/gemini-think.py"` → {task_dir}/resources/gemini-raw.md
 - Worker B: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/think/openai-think.py"` → {task_dir}/resources/chatgpt-raw.md
-- API 키가 없는 LLM은 해당 Worker를 스킵하되, **가용한 LLM은 반드시 실행**
-- 1개만 가용해도 Claude + 해당 LLM 2개로 진행
+- 둘 중 하나라도 빠진 상태로 종합 분석을 완료하지 않는다
 
 ### 3. 종합 분석 보고서 작성 (필수)
-- 3개(또는 가용한) LLM의 결과를 비교/종합
+- 3개 LLM의 결과를 모두 비교/종합
 - {task_dir}/deliverables/종합-분석.md 작성 (항상)
 - {task_dir}/deliverables/answer.txt 에 최종 답변 저장
 - 최종 답변 형식은 사용자 요청을 따름 ("답만" → 한 줄, "분석해줘" → 보고서)

@@ -1,0 +1,10 @@
+{
+  "todo_check": {
+    "enabled": true,
+    "interval_minutes": 120,
+    "timeout_seconds": 300,
+    "dry_run": false,
+    "run_on_start": false,
+    "extra_prompt_args": []
+  }
+}

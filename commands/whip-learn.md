@@ -14,20 +14,16 @@ allowed-tools: [
   "Bash(mkdir *:*)",
   "Bash(chmod *:*)",
   "WebSearch",
-  "WebFetch",
-  "mcp__claude_ai_Notion__notion-create-pages",
-  "mcp__claude_ai_Notion__notion-update-page",
-  "mcp__claude_ai_Notion__notion-fetch",
-  "mcp__claude_ai_Notion__notion-query-database-view",
-  "mcp__claude_ai_Notion__notion-search"
+  "WebFetch"
 ]
 ---
 
 # Whipper Learn — YouTube Summary / Study Notes
 
-## Step 1: Optional API Keys
+## Step 1: Gemini 우선, transcript 폴백 허용
 
-Gemini is optional. Transcript-based summary tasks must still run when no external model keys are configured.
+원본 `youtube-summarize` 스킬처럼 Gemini 분석이 기본 경로다.
+다만 Gemini 키가 없거나 분석이 실패하면 transcript 기반 파이프라인으로 계속 진행해야 한다.
 
 ## Step 2: Setup
 

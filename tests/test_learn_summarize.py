@@ -15,8 +15,10 @@ import re
 import subprocess
 import sys
 import time
+from pathlib import Path
 
-SKILL_DIR = os.path.expanduser("~/.claude/skills/youtube-summarize/scripts")
+ROOT = Path(__file__).resolve().parent.parent
+SKILL_DIR = str(ROOT / "scripts" / "learn")
 WORK_DIR = "/tmp/yt_test_work"
 OUTPUT_DIR = "/tmp/yt_study_notes"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")

@@ -2,8 +2,40 @@
 # API Key resolver — source this file, then call get_api_key "openai"
 set -euo pipefail
 
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+SCRIPT_SOURCE="${BASH_SOURCE[0]:-$0}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$SCRIPT_SOURCE")/../.." && pwd)}"
 API_KEYS_CONFIG="$PLUGIN_ROOT/config/api-keys.json"
+
+resolve_settings_file() {
+  printf '%s\n' "${WHIPPER_SETTINGS_FILE:-$HOME/.claude/settings.json}"
+}
+
+get_settings_env_value() {
+  local key="$1"
+  local settings_file
+  settings_file="$(resolve_settings_file)"
+  python3 - "$settings_file" "$key" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1]).expanduser()
+key = sys.argv[2]
+if not path.exists():
+    sys.exit(1)
+
+try:
+    data = json.loads(path.read_text())
+except Exception:
+    sys.exit(1)
+
+env = data.get("env", {}) if isinstance(data, dict) else {}
+value = env.get(key) if isinstance(env, dict) else None
+if not value:
+    sys.exit(1)
+print(value)
+PY
+}
 
 get_api_key() {
   local name="$1"
@@ -19,6 +51,16 @@ get_api_key() {
   # Try fallback
   if [[ -n "$fallback" ]]; then
     value="${!fallback:-}"
+    [[ -n "$value" ]] && echo "$value" && return 0
+  fi
+
+  # Try ~/.claude/settings.json env section
+  if [[ -n "$env_var" ]]; then
+    value="$(get_settings_env_value "$env_var" 2>/dev/null || true)"
+    [[ -n "$value" ]] && echo "$value" && return 0
+  fi
+  if [[ -n "$fallback" ]]; then
+    value="$(get_settings_env_value "$fallback" 2>/dev/null || true)"
     [[ -n "$value" ]] && echo "$value" && return 0
   fi
 

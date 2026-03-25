@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Upload entire task_dir contents to a Notion page.
-Usage: python3 upload_task.py PAGE_ID TASK_DIR [--iteration N] [--status STATUS]
+Usage: python3 upload_task.py PAGE_ID TASK_DIR [--iteration N] [--set-iteration N] [--status STATUS]
 """
 import argparse
 import re
@@ -173,13 +173,34 @@ def upload_all(page_id, task_dir):
                     content = f"(바이너리 파일: {f.name}, {f.stat().st_size} bytes)"
                 upload_file(page_id, f"📦 결과물: {f.name}", content)
 
+    resources_dir = td / "resources"
+    if resources_dir.exists():
+        for f in sorted(resources_dir.glob("*.md")):
+            upload_file(page_id, f"🔎 자료: {f.name}", f.read_text())
+
 
 def upload_iteration(page_id, task_dir, iteration):
     """Upload only a specific iteration's files."""
     td = Path(task_dir) / "iterations"
-    prefix = f"{iteration:02d}-"
-    for f in sorted(td.glob(f"{prefix}*.md")):
-        upload_file(page_id, f"📝 Iteration {iteration}: {f.stem}", f.read_text())
+    seen = set()
+    for pattern in (f"{iteration:02d}-*.md", f"{iteration}-*.md"):
+        for f in sorted(td.glob(pattern)):
+            if f in seen:
+                continue
+            seen.add(f)
+            upload_file(page_id, f"📝 Iteration {iteration}: {f.stem}", f.read_text())
+
+
+def update_page_properties(page_id, status=None, iteration=None):
+    """Update Notion page properties after upload."""
+    properties = {}
+    if status:
+        properties["Status"] = {"select": {"name": status}}
+    if iteration is not None:
+        properties["Iteration"] = {"number": int(iteration)}
+    if not properties:
+        return
+    notion_patch(f"pages/{to_uuid(page_id)}", {"properties": properties})
 
 
 def main():
@@ -187,6 +208,7 @@ def main():
     parser.add_argument("page_id")
     parser.add_argument("task_dir")
     parser.add_argument("--iteration", type=int, default=None)
+    parser.add_argument("--set-iteration", type=int, default=None)
     parser.add_argument("--status", default=None)
     args = parser.parse_args()
 
@@ -195,10 +217,14 @@ def main():
     else:
         upload_all(args.page_id, args.task_dir)
 
-    if args.status:
-        notion_patch(f"pages/{to_uuid(args.page_id)}", {
-            "properties": {"Status": {"select": {"name": args.status}}}
-        })
+    effective_iteration = (
+        args.set_iteration if args.set_iteration is not None else args.iteration
+    )
+    update_page_properties(
+        args.page_id,
+        status=args.status,
+        iteration=effective_iteration,
+    )
 
     print("OK", end="")
 

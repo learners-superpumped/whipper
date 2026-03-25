@@ -10,6 +10,12 @@ import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from scripts.core.local_env import get_local_env_value
 
 
 def download_video(video_url: str, output_path: str) -> bool:
@@ -27,7 +33,11 @@ def analyze_with_gemini(video_path: str, title: str, language_hint: str = "ko") 
     try:
         from google import genai
 
-        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        api_key = get_local_env_value(
+            "WHIPPER_GEMINI_API_KEY",
+            "GEMINI_API_KEY",
+            "GOOGLE_API_KEY",
+        )
         if not api_key:
             return {"success": False, "error": "GEMINI_API_KEY or GOOGLE_API_KEY not set"}
 

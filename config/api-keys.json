@@ -8,7 +8,7 @@
   "gemini": {
     "env_var": "WHIPPER_GEMINI_API_KEY",
     "fallback": "GEMINI_API_KEY",
-    "required_by": ["whip-think", "whip-research", "whip-learn"],
+    "required_by": ["whip-think", "whip-research"],
     "description": "Google Gemini API"
   }
 }

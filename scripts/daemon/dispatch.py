@@ -1,45 +1,33 @@
 #!/usr/bin/env python3
-"""Whipper Slack Bot — 얇은 릴레이 + Slack 브릿지.
-
-역할: Slack 이벤트 수신 → claude CLI spawn → 브릿지가 중간 보고 → 최종 결과 회신.
-Notion/프로젝트 로직 = 0. 모든 지능은 Claude 세션 안에서.
-"""
-import os
-import sys
+"""Shared whipper Slack/Notion dispatch helpers."""
 import json
+import logging
+import os
 import re
+import shutil
 import subprocess
+import sys
 import threading
 import time
-import logging
 from pathlib import Path
 
-from slack_bolt import App
-from slack_bolt.adapter.socket_mode import SocketModeHandler
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
-)
-logger = logging.getLogger("whipper-daemon")
-
-CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
-SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+CONFIG_DIR = ROOT_DIR / "config"
+SCRIPTS_DIR = ROOT_DIR / "scripts"
 STATE_FILE = Path(os.path.expanduser("~")) / ".claude" / "whipper.local.md"
 
-# Add parent dirs to path for bridge import
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+sys.path.insert(0, str(ROOT_DIR))
+
 from scripts.slack.bridge import SlackBridge
 from scripts.core.local_env import export_whipper_aliases
-
 try:
     from .claude_runtime import build_claude_print_command
     from .run_lock import acquire_run_lock, release_run_lock
-    from .scheduler import start_scheduler
 except ImportError:
     from claude_runtime import build_claude_print_command
     from run_lock import acquire_run_lock, release_run_lock
-    from scheduler import start_scheduler
+
+logger = logging.getLogger("whipper-daemon")
 
 
 def load_slack_config() -> dict:
@@ -50,29 +38,9 @@ def load_slack_config() -> dict:
     return json.loads(config_path.read_text())
 
 
-def detect_skill(text: str) -> str:
-    """메시지에서 스킬 판단. 불확실하면 whip(기본)."""
-    t = text.lower()
-    if "youtube.com" in t or "youtu.be" in t:
-        return "whip-learn"
-    if "/research" in t or "/조사" in t:
-        return "whip-research"
-    if "/think" in t or "/분석" in t:
-        return "whip-think"
-    if "/medical" in t or "/의료" in t:
-        return "whip-medical"
-    return "whip"
-
-
-def clean_mention(text: str) -> str:
-    """@whipper 멘션 태그 제거."""
-    return re.sub(r"<@[A-Z0-9]+>", "", text).strip()
-
-
 def resolve_final_state(
     final_marker: str | None, returncode: int | None, timed_out: bool
 ) -> tuple[str, str]:
-    """Resolve the task outcome for Slack/Notion reporting."""
     if timed_out:
         return "blocked", "timeout"
     if final_marker == "passed":
@@ -404,7 +372,6 @@ def run_dispatch(slack_client, bridge: SlackBridge, prompt: str, skill: str, cha
                 )
             except Exception as e:
                 logger.error("Notion upload failed: %s", e)
-            import shutil
             shutil.rmtree(task_dir_found, ignore_errors=True)
             logger.info("Cleaned up: %s", task_dir_found)
 
@@ -428,64 +395,3 @@ def spawn_dispatch(slack_client, bridge: SlackBridge, prompt: str, skill: str, c
         args=(slack_client, bridge, prompt, skill, channel, thread_ts),
         daemon=True,
     ).start()
-
-
-def create_app():
-    cfg = load_slack_config()
-    if not cfg.get("bot_token") or not cfg.get("app_token"):
-        logger.error("Slack tokens not configured. Run /whipper:whip-notion-init first.")
-        sys.exit(1)
-
-    app = App(token=cfg["bot_token"])
-    bot_user_id = cfg.get("bot_user_id", "")
-    bridge = SlackBridge(app.client)
-
-    # 봇이 응답한 스레드 추적 (인메모리, 재시작 시 리셋)
-    responded_threads: set = set()
-
-    @app.event("app_mention")
-    def handle_mention(event, say):
-        """@whipper 멘션 처리."""
-        text = clean_mention(event.get("text", ""))
-        channel = event.get("channel", "")
-        thread_ts = event.get("thread_ts") or event.get("ts")
-        logger.info("Received app_mention channel=%s thread=%s", channel, thread_ts)
-
-        if not text:
-            say(text="무엇을 도와드릴까요?", thread_ts=thread_ts)
-            return
-
-        slack_context = f"[Slack thread: {channel}/{thread_ts}] "
-        skill = detect_skill(text)
-        spawn_dispatch(app.client, bridge, slack_context + text, skill, channel, thread_ts)
-        responded_threads.add(thread_ts)
-
-    @app.event("message")
-    def handle_message(event, say):
-        """스레드 답장 처리 (멘션 없이도, 봇이 이전에 응답한 스레드만)."""
-        if event.get("bot_id") or event.get("user") == bot_user_id:
-            return
-        thread_ts = event.get("thread_ts")
-        if not thread_ts or thread_ts not in responded_threads:
-            return
-
-        text = event.get("text", "")
-        channel = event["channel"]
-        logger.info("Received follow-up message channel=%s thread=%s", channel, thread_ts)
-        slack_context = f"[Slack thread: {channel}/{thread_ts}] "
-        skill = detect_skill(text)
-        spawn_dispatch(app.client, bridge, slack_context + text, skill, channel, thread_ts)
-
-    return app, cfg
-
-
-def main():
-    app, cfg = create_app()
-    start_scheduler()
-    handler = SocketModeHandler(app, cfg["app_token"])
-    logger.info("🔥 Whipper Slack Bot started (Socket Mode + scheduler)")
-    handler.start()
-
-
-if __name__ == "__main__":
-    main()

@@ -3,6 +3,12 @@
 import sys
 import os
 import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from scripts.core.local_env import get_local_env_value
 
 def main():
     prompt = sys.argv[1] if len(sys.argv) > 1 else sys.stdin.read().strip()
@@ -10,7 +16,10 @@ def main():
         print("Error: No prompt provided", file=sys.stderr)
         sys.exit(1)
 
-    api_key = os.environ.get("WHIPPER_OPENAI_API_KEY") or os.environ.get("CALLME_OPENAI_API_KEY")
+    api_key = get_local_env_value(
+        "WHIPPER_OPENAI_API_KEY",
+        "CALLME_OPENAI_API_KEY",
+    )
     if not api_key:
         print("Error: OPENAI_API_KEY not set", file=sys.stderr)
         sys.exit(1)
