@@ -183,9 +183,9 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/slack/post.sh "$TASK_DIR" "CHANNEL" "THREAD_T
 
 - 모든 기준 PASS:
   1. notion_page_id가 있으면: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/notion/update_status.py "$NOTION_PAGE_ID" --status 완료`
-  2. .claude/whipper.local.md에 status: passed로 수정 (sed 사용)
-  3. task_dir 정리: `rm -rf "$TASK_DIR"` (삭제)
-  4. **즉시 세션 종료** — 이 4단계만 수행하고 바로 종료한다. Notion 업데이트, Memory Updater, Publisher 등 추가 작업 일절 하지 않는다. 4.5단계의 Slack 보고가 이미 결과를 공유했으므로 충분하다.
+  2. **state 파일 삭제**: `rm -f .claude/whipper.local.md` (sed가 아님! 삭제해야 stop hook이 즉시 exit 0)
+  3. task_dir 정리: `rm -rf "$TASK_DIR"`
+  4. **즉시 세션 종료** — 이 4단계만 수행하고 바로 종료. 추가 작업 일절 금지.
 
 - 하나라도 FAIL:
   1. .claude/whipper.local.md에 status: failed로 수정 (sed 사용)
