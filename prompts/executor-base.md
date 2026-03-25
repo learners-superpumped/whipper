@@ -62,6 +62,22 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/slack/post.sh "$TASK_DIR" "$SLACK_CHANNEL" "$
 
 Slack 보고 정보가 없으면 이 단계를 건너뛴다.
 
+## Notion 실시간 로깅
+
+프롬프트에 NOTION_PAGE_ID와 CLAUDE_PLUGIN_ROOT가 전달된 경우, 주요 작업마다 Notion 페이지에 로그를 남긴다:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/notion/append_log.py "$NOTION_PAGE_ID" "로그 메시지"
+```
+
+로깅 시점:
+1. 실행 계획 수립 완료: "🔧 실행 계획: {요약}"
+2. 주요 작업 완료: "📝 {작업 요약}"
+3. 에러/재시도: "⚠️ {에러}"
+4. 최종 결과: "✅ 완료: {결과 요약}" 또는 "❌ 실패: {사유}"
+
+NOTION_PAGE_ID가 없으면 이 단계를 건너뛴다.
+
 ## 산출물 저장
 - 최종 산출물 → {task_dir}/deliverables/ (텍스트 파일)
 - 이미지/스크린샷/GIF → {task_dir}/resources/ (완료 시 Manager가 catbox.moe 업로드 후 Notion에 퍼블리시)
