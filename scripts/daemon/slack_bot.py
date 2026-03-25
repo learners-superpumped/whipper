@@ -24,6 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger("whipper-daemon")
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 
 # Add parent dirs to path for bridge import
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
@@ -115,6 +116,7 @@ def create_app():
                 last_ping = start
                 pass_detected_at = None
                 state_file_ever_existed = False
+                notion_page_id = ""
                 state_file = Path(os.path.expanduser("~")) / ".claude" / "whipper.local.md"
 
                 while process.poll() is None:
@@ -131,14 +133,40 @@ def create_app():
                     # State 파일 존재 추적
                     if state_file.exists():
                         state_file_ever_existed = True
+                        # notion_page_id 캐시 (state 파일이 삭제되기 전에)
+                        try:
+                            content = state_file.read_text()
+                            for line in content.split('\n'):
+                                if line.startswith('notion_page_id:'):
+                                    pid = line.split(':', 1)[1].strip().strip('"')
+                                    if pid:
+                                        notion_page_id = pid
+                        except Exception:
+                            pass
 
                     # PASS 감지: state 파일이 한번 존재했다가 삭제된 경우만
                     if state_file_ever_existed and not state_file.exists() and pass_detected_at is None:
                         pass_detected_at = time.time()
                         logger.info("PASS detected (state file created then deleted). Waiting 60s...")
 
-                    # PASS 후 60초 지나면 강제 종료
+                    # PASS 후 60초 지나면 Notion 업로드 후 강제 종료
                     if pass_detected_at and (time.time() - pass_detected_at > 60):
+                        # Notion에 task_dir 전체 업로드
+                        if notion_page_id:
+                            try:
+                                newest_task = max(
+                                    [d for d in glob.glob("/tmp/whipper-2026-*") if os.path.isdir(d)],
+                                    key=os.path.getmtime, default=None
+                                )
+                                if newest_task:
+                                    subprocess.run(
+                                        [sys.executable, str(SCRIPTS_DIR / "notion" / "upload_task.py"),
+                                         notion_page_id, newest_task, "--status", "완료"],
+                                        timeout=30,
+                                    )
+                                    logger.info(f"Notion upload complete: {notion_page_id}")
+                            except Exception as e:
+                                logger.error(f"Notion upload failed: {e}")
                         logger.info("Force-killing claude after PASS grace period.")
                         process.kill()
                         break
