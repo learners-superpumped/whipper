@@ -46,6 +46,22 @@
 - 독립적인 작업이 2개 이상이면 병렬 Worker로 디스패치 (Agent 도구)
 - 각 Worker에도 이 실행 지침의 절대 원칙을 전달
 
+## Slack 실시간 보고
+
+프롬프트에 TASK_DIR, SLACK_CHANNEL, SLACK_THREAD_TS, CLAUDE_PLUGIN_ROOT가 전달된 경우, 주요 작업마다 Slack 스레드에 보고한다:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/slack/post.sh "$TASK_DIR" "$SLACK_CHANNEL" "$SLACK_THREAD_TS" "메시지"
+```
+
+보고 시점:
+1. 실행 계획 수립 완료 시: `"🔧 실행 계획: {계획 요약 1줄}"`
+2. 주요 작업 완료마다: `"📝 {완료한 작업 요약}"`
+3. Worker 서브에이전트 완료 시: `"✅ Worker 완료: {작업명}"`
+4. 에러/재시도 시: `"⚠️ {에러 내용}, 대안 시도 중..."`
+
+Slack 보고 정보가 없으면 이 단계를 건너뛴다.
+
 ## 산출물 저장
 - 최종 산출물 → {task_dir}/deliverables/ (텍스트 파일)
 - 이미지/스크린샷/GIF → {task_dir}/resources/ (완료 시 Manager가 catbox.moe 업로드 후 Notion에 퍼블리시)

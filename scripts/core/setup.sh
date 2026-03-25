@@ -48,7 +48,7 @@ TASK_ID="${DATE}-${SLUG}"
 TASK_DIR="/tmp/whipper-${TASK_ID}"
 
 # Create task folder structure (in /tmp/, cleaned up on completion)
-mkdir -p "$TASK_DIR/iterations" "$TASK_DIR/deliverables" "$TASK_DIR/resources"
+mkdir -p "$TASK_DIR/iterations" "$TASK_DIR/deliverables" "$TASK_DIR/resources" "$TASK_DIR/slack_messages"
 
 # Create state file
 mkdir -p .claude

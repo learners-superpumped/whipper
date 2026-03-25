@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Whipper Slack Bot — 얇은 릴레이.
+"""Whipper Slack Bot — 얇은 릴레이 + Slack 브릿지.
 
-역할: Slack 이벤트 수신 → claude CLI spawn → stdout을 스레드에 회신.
+역할: Slack 이벤트 수신 → claude CLI spawn → 브릿지가 중간 보고 → 최종 결과 회신.
 Notion/프로젝트 로직 = 0. 모든 지능은 Claude 세션 안에서.
 """
+import glob
 import os
 import sys
 import json
 import re
 import subprocess
 import threading
+import time
 import logging
 from pathlib import Path
 
@@ -22,6 +24,10 @@ logging.basicConfig(
 logger = logging.getLogger("whipper-daemon")
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
+
+# Add parent dirs to path for bridge import
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from scripts.slack.bridge import SlackBridge
 
 
 def load_slack_config() -> dict:
@@ -59,12 +65,13 @@ def create_app():
 
     app = App(token=cfg["bot_token"])
     bot_user_id = cfg.get("bot_user_id", "")
+    bridge = SlackBridge(app.client)
 
     # 봇이 응답한 스레드 추적 (인메모리, 재시작 시 리셋)
     responded_threads: set = set()
 
     def spawn_claude(prompt: str, skill: str, channel: str, thread_ts: str):
-        """별도 스레드에서 claude CLI 실행, 결과를 Slack에 회신."""
+        """별도 스레드에서 claude CLI 실행, 브릿지로 중간 보고, 최종 결과 회신."""
 
         def run():
             try:
@@ -75,29 +82,60 @@ def create_app():
                 )
 
                 full_prompt = f"/whipper:{skill} {prompt}"
-                result = subprocess.run(
+                process = subprocess.Popen(
                     ["claude", "-p", full_prompt],
-                    capture_output=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
                     text=True,
-                    timeout=600,
                     cwd=os.path.expanduser("~"),
                 )
 
-                output = result.stdout
-                if len(output) > 3000:
-                    output = output[-3000:]
+                # 브릿지: claude가 setup.sh로 task_dir을 만들면 감시 시작
+                # 약간 대기 후 최신 task_dir 찾기
+                time.sleep(10)
+                task_dirs = sorted(
+                    glob.glob("/tmp/whipper-*"),
+                    key=os.path.getmtime,
+                    reverse=True,
+                )
+                if task_dirs and os.path.isdir(task_dirs[0] + "/slack_messages"):
+                    bridge.watch(task_dirs[0], channel, thread_ts)
+                    logger.info(f"Bridge started for: {task_dirs[0]}")
 
-                status_emoji = "✅ 완료!" if result.returncode == 0 else "❌ 오류"
-                msg = f"{status_emoji}\n\n{output}" if output.strip() else status_emoji
+                # 프로세스 완료 대기 (30분 타임아웃, 5분 간격 핑)
+                timeout = 1800
+                start = time.time()
+                last_ping = start
+                while process.poll() is None:
+                    elapsed = time.time() - start
+                    if elapsed > timeout:
+                        process.kill()
+                        app.client.chat_postMessage(
+                            channel=channel,
+                            thread_ts=thread_ts,
+                            text=f"⏰ 시간 초과 ({timeout // 60}분).",
+                        )
+                        return
+                    if time.time() - last_ping > 300:
+                        mins = int(elapsed // 60)
+                        app.client.chat_postMessage(
+                            channel=channel,
+                            thread_ts=thread_ts,
+                            text=f"⏳ 작업 진행중... ({mins}분 경과)",
+                        )
+                        last_ping = time.time()
+                    time.sleep(5)
+
+                # 최종 결과 (브릿지가 중간 보고를 했으므로 요약만)
+                output = process.stdout.read()
+                if len(output) > 500:
+                    output = "...\n" + output[-500:]
+
+                status_emoji = "✅ 작업 완료!" if process.returncode == 0 else "❌ 오류 발생"
+                msg = f"{status_emoji}\n```\n{output}\n```" if output.strip() else status_emoji
 
                 app.client.chat_postMessage(
                     channel=channel, thread_ts=thread_ts, text=msg
-                )
-            except subprocess.TimeoutExpired:
-                app.client.chat_postMessage(
-                    channel=channel,
-                    thread_ts=thread_ts,
-                    text="⏰ 시간 초과 (10분). 스레드에 답장으로 이어서 진행 가능.",
                 )
             except Exception as e:
                 logger.error(f"spawn error: {e}")
@@ -118,7 +156,6 @@ def create_app():
             say(text="무엇을 도와드릴까요?", thread_ts=thread_ts)
             return
 
-        # Slack thread 컨텍스트를 프롬프트에 포함
         slack_context = f"[Slack thread: {channel}/{thread_ts}] "
         skill = detect_skill(text)
         spawn_claude(slack_context + text, skill, channel, thread_ts)
