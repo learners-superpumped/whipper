@@ -90,17 +90,23 @@ def create_app():
                     cwd=os.path.expanduser("~"),
                 )
 
-                # 브릿지: claude가 setup.sh로 task_dir을 만들면 감시 시작
-                # 약간 대기 후 최신 task_dir 찾기
-                time.sleep(10)
-                task_dirs = sorted(
-                    glob.glob("/tmp/whipper-*"),
-                    key=os.path.getmtime,
-                    reverse=True,
-                )
-                if task_dirs and os.path.isdir(task_dirs[0] + "/slack_messages"):
-                    bridge.watch(task_dirs[0], channel, thread_ts)
-                    logger.info(f"Bridge started for: {task_dirs[0]}")
+                # 브릿지: setup.sh가 task_dir을 만들면 감시 시작
+                # 최대 30초간 폴링하여 slack_messages/ 디렉토리를 찾음
+                bridge_started = False
+                for _wait in range(6):
+                    time.sleep(5)
+                    candidates = [
+                        d for d in glob.glob("/tmp/whipper-2026-*")
+                        if os.path.isdir(d) and os.path.isdir(d + "/slack_messages")
+                    ]
+                    if candidates:
+                        newest = max(candidates, key=os.path.getmtime)
+                        bridge.watch(newest, channel, thread_ts)
+                        logger.info(f"Bridge started for: {newest}")
+                        bridge_started = True
+                        break
+                if not bridge_started:
+                    logger.warning("No task_dir with slack_messages/ found after 30s")
 
                 # 프로세스 완료 대기 (30분 타임아웃, 5분 간격 핑)
                 # State 파일이 생성된 후 삭제되면 PASS → 60초 후 kill
