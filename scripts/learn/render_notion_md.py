@@ -73,7 +73,7 @@ def render_study_note_to_notion_md(data: dict) -> str:
             item_type = item.get("type", "text")
 
             if item_type == "text":
-                text = _convert_timestamps(item.get("text", ""), video_url)
+                text = _convert_timestamps(item.get("value", "") or item.get("text", ""), video_url)
                 lines.append(text)
                 lines.append("")
 
@@ -86,7 +86,7 @@ def render_study_note_to_notion_md(data: dict) -> str:
 
             elif item_type == "toggle":
                 toggle_title = item.get("title", "더 보기")
-                toggle_content = _convert_timestamps(item.get("content", ""), video_url)
+                toggle_content = _convert_timestamps(item.get("value", "") or item.get("content", ""), video_url)
                 lines.append("<details>")
                 lines.append(f"<summary>{toggle_title}</summary>")
                 lines.append("")
