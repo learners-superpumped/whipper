@@ -62,35 +62,10 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/slack/post.sh "$TASK_DIR" "$SLACK_CHANNEL" "$
 
 Slack 보고 정보가 없으면 이 단계를 건너뛴다.
 
-## Notion 상세 로깅
+## Notion 로깅
 
-프롬프트에 NOTION_PAGE_ID와 CLAUDE_PLUGIN_ROOT가 전달된 경우, Notion 페이지에 **상세한 실행 로그**를 남긴다:
-
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/notion/append_log.py "$NOTION_PAGE_ID" "로그 메시지"
-```
-
-### 로깅 시점과 내용:
-
-1. **실행 계획 수립 완료**: 전체 실행 계획을 기록
-   - 각 단계별 작업 내용, 사용할 도구, 예상 순서
-
-2. **웹 조사 결과**: 검색/조회한 모든 내용 기록
-   - 검색 키워드, 방문한 URL, 수집한 정보, 출처 링크
-
-3. **Worker 결과**: 서브에이전트 실행 결과 전문 기록
-
-4. **에러/재시도**: 에러 내용, 시도한 대안, 재시도 결과
-
-5. **최종 결과물**: deliverables에 저장한 파일 내용 전문을 Notion에도 기록
-   - 결과물의 실제 텍스트를 통째로 append_log로 기록
-   - 참조한 출처 URL 목록을 별도로 기록
-
-6. **자체 평가**: 성공기준 각 항목에 대한 자체 평가 기록
-
-**원칙**: Notion 페이지만 보면 이 작업의 전체 맥락을 파악할 수 있어야 한다. 간략한 요약이 아니라 상세한 원본 로그를 기록한다.
-
-NOTION_PAGE_ID가 없으면 이 단계를 건너뛴다.
+Notion 로깅은 인프라가 자동으로 처리한다. Executor는 Notion에 직접 기록할 필요 없다.
+iterations/ 디렉토리에 실행계획과 로그를 파일로 잘 기록하면, 자동으로 Notion에 업로드된다.
 
 ## 산출물 저장
 - 최종 산출물 → {task_dir}/deliverables/ (텍스트 파일)
