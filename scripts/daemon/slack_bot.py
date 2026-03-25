@@ -103,9 +103,13 @@ def create_app():
                     logger.info(f"Bridge started for: {task_dirs[0]}")
 
                 # 프로세스 완료 대기 (30분 타임아웃, 5분 간격 핑)
+                # State 파일이 삭제되면 PASS 완료로 간주 → 60초 후 kill
                 timeout = 1800
                 start = time.time()
                 last_ping = start
+                pass_detected_at = None
+                state_file = Path(os.path.expanduser("~")) / ".claude" / "plugins" / "marketplaces" / "whipper" / ".claude" / "whipper.local.md"
+
                 while process.poll() is None:
                     elapsed = time.time() - start
                     if elapsed > timeout:
@@ -116,7 +120,19 @@ def create_app():
                             text=f"⏰ 시간 초과 ({timeout // 60}분).",
                         )
                         return
-                    if time.time() - last_ping > 300:
+
+                    # PASS 감지: state 파일이 삭제되면 Manager가 PASS 처리한 것
+                    if not state_file.exists() and pass_detected_at is None:
+                        pass_detected_at = time.time()
+                        logger.info("PASS detected (state file deleted). Waiting 60s for cleanup...")
+
+                    # PASS 후 60초 지나면 강제 종료
+                    if pass_detected_at and (time.time() - pass_detected_at > 60):
+                        logger.info("Force-killing claude after PASS grace period.")
+                        process.kill()
+                        break
+
+                    if time.time() - last_ping > 300 and pass_detected_at is None:
                         mins = int(elapsed // 60)
                         app.client.chat_postMessage(
                             channel=channel,
