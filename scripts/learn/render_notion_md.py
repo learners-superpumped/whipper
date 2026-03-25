@@ -30,14 +30,30 @@ def render_study_note_to_notion_md(data: dict) -> str:
     video_url = meta.get("video_url", "")
     lines = []
 
-    # Header
+    # Header with link
     lines.append(f"> [YouTube에서 보기]({video_url})")
+    lines.append("")
+
+    # Metadata table
     view_count = meta.get("view_count", 0)
     duration = meta.get("duration", 0)
-    dur_str = f"{duration // 60}:{duration % 60:02d}" if duration else "N/A"
+    if duration >= 3600:
+        dur_str = f"{duration // 3600}:{(duration % 3600) // 60:02d}:{duration % 60:02d}"
+    elif duration:
+        dur_str = f"{duration // 60}:{duration % 60:02d}"
+    else:
+        dur_str = "N/A"
     upload_date = meta.get("upload_date", "N/A")
+    if upload_date and len(upload_date) == 8 and upload_date.isdigit():
+        upload_date = f"{upload_date[:4]}-{upload_date[4:6]}-{upload_date[6:8]}"
     analysis = meta.get("analysis_mode", "gemini")
-    lines.append(f"> 조회수: {view_count:,} | 길이: {dur_str} | 업로드: {upload_date} | 분석: {analysis}")
+
+    lines.append("| 항목 | 값 |")
+    lines.append("|------|-----|")
+    lines.append(f"| 업로드 | {upload_date} |")
+    lines.append(f"| 길이 | {dur_str} |")
+    lines.append(f"| 조회수 | {view_count:,} |")
+    lines.append(f"| 분석 | {analysis} |")
     lines.append("")
     lines.append("---")
     lines.append("")

@@ -1,1 +1,16 @@
-{}
+{
+  "user": {},
+  "pets": [
+    {
+      "name": null,
+      "breed": "보더콜리 빠삐용 믹스",
+      "birthdate": "2025-12-12",
+      "sex": "male",
+      "neutered": false,
+      "vaccinations": "4차",
+      "weight": null,
+      "conditions": [],
+      "updated_at": "2026-03-25"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 {
+  "token": "",
   "database_id": "",
   "status_mapping": {
     "queued": "진행예정",
@@ -6,5 +7,6 @@
     "completed": "완료",
     "dropped": "드랍",
     "blocked": "블락드"
-  }
+  },
+  "video_database_id": ""
 }

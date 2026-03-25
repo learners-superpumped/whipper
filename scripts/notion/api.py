@@ -45,6 +45,12 @@ def get_database_id() -> str | None:
     return cfg.get("database_id")
 
 
+def get_video_database_id() -> str | None:
+    """Return video_database_id from config, or None."""
+    cfg = load_config()
+    return cfg.get("video_database_id")
+
+
 def to_uuid(page_id: str) -> str:
     """Convert 32-char hex to UUID format with hyphens. Pass-through if already has hyphens."""
     pid = page_id.replace("-", "")

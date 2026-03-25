@@ -162,24 +162,8 @@ def create_app():
                         pass_detected_at = time.time()
                         logger.info("PASS detected (state file created then deleted). Waiting 60s...")
 
-                    # PASS 후 60초 지나면 Notion 업로드 후 강제 종료
+                    # PASS 후 60초 지나면 강제 종료
                     if pass_detected_at and (time.time() - pass_detected_at > 60):
-                        # Notion에 task_dir 전체 업로드 (bridge 시작 시 찾은 task_dir 사용)
-                        if notion_page_id and task_dir_found and os.path.isdir(task_dir_found):
-                            try:
-                                subprocess.run(
-                                    [sys.executable, str(SCRIPTS_DIR / "notion" / "upload_task.py"),
-                                     notion_page_id, task_dir_found, "--status", "완료"],
-                                    timeout=60,
-                                )
-                                logger.info(f"Notion upload complete: {notion_page_id} from {task_dir_found}")
-                            except Exception as e:
-                                logger.error(f"Notion upload failed: {e}")
-                        # Upload 완료 후 task_dir 정리
-                        if task_dir_found and os.path.isdir(task_dir_found):
-                            import shutil
-                            shutil.rmtree(task_dir_found, ignore_errors=True)
-                            logger.info(f"Cleaned up: {task_dir_found}")
                         logger.info("Force-killing claude after PASS grace period.")
                         process.kill()
                         break
@@ -193,6 +177,22 @@ def create_app():
                         )
                         last_ping = time.time()
                     time.sleep(5)
+
+                # 프로세스 종료 후 Notion 업로드 (루프 밖에서)
+                if notion_page_id and task_dir_found and os.path.isdir(task_dir_found):
+                    try:
+                        subprocess.run(
+                            [sys.executable, str(SCRIPTS_DIR / "notion" / "upload_task.py"),
+                             notion_page_id, task_dir_found, "--status", "완료"],
+                            timeout=60,
+                        )
+                        logger.info(f"Notion upload complete: {notion_page_id} from {task_dir_found}")
+                    except Exception as e:
+                        logger.error(f"Notion upload failed: {e}")
+                    # 업로드 후 task_dir 정리
+                    import shutil
+                    shutil.rmtree(task_dir_found, ignore_errors=True)
+                    logger.info(f"Cleaned up: {task_dir_found}")
 
                 # 최종 결과
                 if pass_detected_at:
