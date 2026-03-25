@@ -31,10 +31,12 @@ if [[ ! "$ITERATION" =~ ^[0-9]+$ ]] || [[ ! "$MAX_ITERATIONS" =~ ^[0-9]+$ ]]; th
   exit 0
 fi
 
+# PLUGIN_ROOT (needed by both passed and failed paths)
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
 # Status: passed → allow exit, update global index
 if [[ "$STATUS" == "passed" ]]; then
   # Source logger and update global index
-  PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
   source "$PLUGIN_ROOT/scripts/core/logger.sh"
   TASK_ID=$(basename "$TASK_DIR")
   update_global_index "$TASK_ID" "passed" "$ITERATION"
@@ -45,7 +47,6 @@ fi
 # Max iterations reached → allow exit with warning
 if [[ $MAX_ITERATIONS -gt 0 ]] && [[ $ITERATION -ge $MAX_ITERATIONS ]]; then
   echo "🛑 Whipper: Max iterations ($MAX_ITERATIONS) reached."
-  PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
   source "$PLUGIN_ROOT/scripts/core/logger.sh"
   TASK_ID=$(basename "$TASK_DIR")
   update_global_index "$TASK_ID" "max_iterations" "$ITERATION"
@@ -55,6 +56,12 @@ fi
 
 # Status: failed or running → block and re-inject
 NEXT_ITERATION=$((ITERATION + 1))
+
+# Notion에 현재 iteration 로그 업로드 (비동기, 실패해도 무시)
+NOTION_PAGE_ID=$(echo "$FRONTMATTER" | grep '^notion_page_id:' | sed 's/notion_page_id: *//' | sed 's/^"\(.*\)"$/\1/')
+if [[ -n "$NOTION_PAGE_ID" ]] && [[ -d "$TASK_DIR/iterations" ]]; then
+  python3 "$PLUGIN_ROOT/scripts/notion/upload_task.py" "$NOTION_PAGE_ID" "$TASK_DIR" --iteration "$ITERATION" 2>/dev/null &
+fi
 
 # Extract prompt (everything after closing ---)
 PROMPT_TEXT=$(awk '/^---$/{i++; next} i>=2' "$STATE_FILE")
