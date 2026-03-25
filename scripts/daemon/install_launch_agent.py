@@ -14,12 +14,28 @@ TEMPLATE_PATH = ROOT_DIR / "scripts" / "daemon" / "com.whipper.daemon.plist"
 TARGET_PATH = Path.home() / "Library" / "LaunchAgents" / "com.whipper.daemon.plist"
 
 
+def sanitize_path_env(path_env: str) -> str:
+    parts = []
+    seen = set()
+    for entry in path_env.split(":"):
+        cleaned = entry.strip()
+        if not cleaned or "/.codex/tmp/" in cleaned:
+            continue
+        if cleaned in seen:
+            continue
+        seen.add(cleaned)
+        parts.append(cleaned)
+    return ":".join(parts)
+
+
 def render_plist(python_bin: str, repo_root: str, path_env: str) -> str:
     template = TEMPLATE_PATH.read_text()
+    script_path = str(ROOT_DIR / "scripts" / "daemon" / "slack_bot.py")
     return (
         template.replace("__PYTHON_BIN__", python_bin)
+        .replace("__SLACK_BOT_SCRIPT__", script_path)
         .replace("__WHIPPER_ROOT__", repo_root)
-        .replace("__PATH__", path_env)
+        .replace("__PATH__", sanitize_path_env(path_env))
     )
 
 
