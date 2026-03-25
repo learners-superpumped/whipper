@@ -956,3 +956,111 @@ allowed-tools: ["Read", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/*:*)"]
 ### 병렬 Worker 파일 충돌
 - 각 Worker 출력은 고유 prefix 사용 (예: `resources/gemini-raw.md`, `resources/chatgpt-raw.md`)
 - Worker는 자기 파일만 쓰고 다른 Worker 파일을 읽지 않음
+
+---
+
+## Design Spec v2 — 2026-03-25 업데이트 (Slack+Notion 통합)
+
+이 세션에서 추가/변경된 기획 의도. 기존 v1 spec과 충돌 시 v2가 우선.
+
+### 핵심 원칙: claude -p에서는 MCP 사용 불가
+
+`claude -p` (headless CLI)는 Slack MCP, Notion MCP에 접근 불가. 따라서:
+- **Slack 보고**: 파일 기반 브릿지 (`post.sh` → `slack_messages/` → 데몬 폴링)
+- **Notion 기록**: REST API 스크립트 (`scripts/notion/*.py`) + 데몬 자동 업로드
+- **Notion 페이지 생성**: 데몬이 `claude -p` 실행 전에 미리 생성
+- **Notion 로깅**: 데몬이 PASS/종료 후 `task_dir` 전체를 자동 업로드 (`upload_task.py`)
+- **allowed-tools에서 Notion MCP 도구 전부 제거** (모든 스킬)
+
+### Slack 통합
+
+1. **Slack 앱 "Whipper"**: Socket Mode, `@Whipper` 멘션으로 작업 시작
+2. **데몬 (`slack_bot.py`)**: Slack 이벤트 수신 → `claude -p` spawn → 브릿지 → 최종 보고
+3. **스킬 자동 감지**: YouTube URL → learn, `/think` → think, `/research` → research, `/medical` → medical, 그 외 → whip
+4. **Slack 보고 시점**:
+   - 🔥 작업 시작 (데몬)
+   - 📋 성공기준 + Notion 링크 (Manager → post.sh → 브릿지)
+   - 🔧 실행 계획 / 📝 진행 상황 (Executor → post.sh → 브릿지)
+   - ✅ 전체 통과 또는 🔄 재시도 필요 (Manager → post.sh → 브릿지)
+   - ✅ 작업 완료 (데몬)
+5. **스레드 팔로업**: 같은 스레드에 추가 메시지 → 기존 일감 재개
+
+### Notion 통합
+
+1. **Notion REST API 스크립트** (MCP 대신):
+   - `create_page.py` — 페이지 생성 → page_id + URL 반환
+   - `append_log.py` — 페이지 본문에 텍스트 추가
+   - `update_status.py` — Status/Iteration 속성 변경
+   - `query_thread.py` — Slack Thread URL로 기존 일감 검색
+   - `upload_task.py` — task_dir 전체를 Notion에 업로드 (마크다운 → 네이티브 블록)
+2. **자동 업로드**: 데몬이 프로세스 종료 후 `upload_task.py` 실행 → 성공기준, 실행계획, 실행로그, 매니저평가, 결과물 모두 Notion 페이지에 기록
+3. **마크다운 → Notion 네이티브 블록**: 테이블 → table 블록, 헤딩 → heading 블록, 리스트 → list 블록, 코드 → code 블록
+4. **Status 자동 변경**: PASS → "완료", FAIL/블락 → "블락드"
+5. **task_dir 자동 정리**: 업로드 완료 후 데몬이 삭제
+
+### PASS 후 빠른 종료
+
+Manager 5단계:
+1. `rm -f .claude/whipper.local.md` (state 파일 삭제 — sed가 아님)
+2. 즉시 세션 종료 — Notion/Memory/Publisher 등 추가 작업 금지
+3. 데몬이 state 파일 삭제를 감지 → 60초 grace period → force-kill → upload → cleanup
+
+### 기존 일감 재개
+
+데몬이 `query_thread.py`로 Slack Thread URL 매칭하여 기존 Notion 페이지 발견 시:
+- 기존 page_id 재사용
+- 환경변수로 `claude -p`에 전달 (`WHIPPER_NOTION_PAGE_ID` 등)
+
+### 스케줄러 팔로업
+
+`scheduler.py`가 주기적으로:
+- Notion DB에서 "블락드" 또는 오래된 "진행중" 일감 검색
+- Slack 스레드에서 완료 마커 확인 → 있으면 Notion 상태 동기화
+- 없으면 `run_dispatch()`로 팔로업 실행
+
+### 스킬별 기획 의도 (v2 — 원본 spec과 다른 부분)
+
+#### whip-think: **항상 멀티 LLM**
+- v1: "선택적 교차검증" → **v2: 항상 3개 LLM 병렬 (Claude + Gemini + ChatGPT)**
+- Claude 파트: Executor 직접 수행 + WebSearch
+- Gemini Worker: `gemini-think.py` 병렬 실행
+- ChatGPT Worker: `openai-think.py` 병렬 실행
+- API 키 없는 LLM만 스킵, 가용한 LLM은 **반드시** 실행
+- 종합-분석.md 항상 생성 (3개 LLM 비교표 포함)
+- 모든 raw 결과를 resources/에 저장 → Notion에 자동 업로드
+
+#### whip-research: **항상 멀티 LLM Deep Research**
+- v1: "짧은 조사는 WebSearch만" → **v2: 항상 Gemini + ChatGPT deep research 병렬**
+- Worker A: `gemini-research.py` (Interactions API, 비동기 폴링)
+- Worker B: `openai-research.py` (Responses API, background)
+- 교차검증: Executor가 WebSearch로 핵심 출처 직접 확인 (항상)
+- 출처 불일치 시 명시적 표기
+- 조사-보고서.md 항상 생성
+- 모든 raw 결과 + cross-verification을 resources/에 저장 → Notion에 자동 업로드
+
+#### whip-learn: YouTube 학습노트
+- 기존 v1 파이프라인 유지 (8단계)
+- 추가: 비디오 트래킹 DB (`init_video_db.py`, `query_videos.py`, `register_video.py`)
+- 추가: 채널 모드에서 중복 체크 후 스킵
+- Notion 발행: `render_notion_md.py` → 추적 DB row 페이지에 직접 삽입
+- YouTube 임베드: 페이지 최상단에 URL 단독 줄
+
+#### whip-medical: 의료 디시전 트리
+- 기존 v1 의도 유지
+- 추가: 간단한 질문은 간결하게, 디시전 트리는 명시적 요구 시에만
+- 모든 의학 정보에 근거 링크 필수
+- profile.json 반영 (반려동물 정보)
+
+### Notion 기록 원칙 (모든 스킬 공통)
+
+**Notion 페이지만 보면 전체 작업을 재현할 수 있어야 한다.**
+
+자동 업로드되는 파일:
+- README.md — 성공기준 + 매핑표
+- iterations/{N}-execution-plan.md — 실행 계획
+- iterations/{N}-executor-log.md — 실행 로그 (수행 작업, 사용 도구, 산출물 목록)
+- iterations/{N}-manager-eval.md — 매니저 평가 (기준별 PASS/FAIL + 근거)
+- deliverables/* — 최종 결과물 전문
+- resources/ 중 .md 파일 — LLM raw 결과, 교차검증, 출처 목록
+
+Notion에서 테이블은 네이티브 table 블록으로 렌더링.
