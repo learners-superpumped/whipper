@@ -22,8 +22,12 @@ class SlackBridge:
         msg_dir = Path(task_dir) / "slack_messages"
         msg_dir.mkdir(parents=True, exist_ok=True)
 
+        # 같은 channel/thread 또는 같은 task_dir에 대해 중복 방지
         key = f"{channel}/{thread_ts}"
+        dir_key = str(msg_dir)
         if key in self._watchers and self._watchers[key].is_alive():
+            return
+        if dir_key in self._watchers and self._watchers[dir_key].is_alive():
             return
 
         def _poll():
@@ -50,3 +54,4 @@ class SlackBridge:
         t = threading.Thread(target=_poll, daemon=True)
         t.start()
         self._watchers[key] = t
+        self._watchers[dir_key] = t
