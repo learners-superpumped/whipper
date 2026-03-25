@@ -153,17 +153,22 @@ def create_app():
                         last_ping = time.time()
                     time.sleep(5)
 
-                # 최종 결과 (브릿지가 중간 보고를 했으므로 요약만)
-                output = process.stdout.read()
-                if len(output) > 500:
-                    output = "...\n" + output[-500:]
-
-                status_emoji = "✅ 작업 완료!" if process.returncode == 0 else "❌ 오류 발생"
-                msg = f"{status_emoji}\n```\n{output}\n```" if output.strip() else status_emoji
-
-                app.client.chat_postMessage(
-                    channel=channel, thread_ts=thread_ts, text=msg
-                )
+                # 최종 결과
+                if pass_detected_at:
+                    # PASS 후 force-kill된 경우 — 이미 브릿지가 결과를 보고함
+                    app.client.chat_postMessage(
+                        channel=channel, thread_ts=thread_ts,
+                        text="✅ 작업 완료!",
+                    )
+                else:
+                    output = process.stdout.read()
+                    if len(output) > 500:
+                        output = "...\n" + output[-500:]
+                    status_emoji = "✅ 작업 완료!" if process.returncode == 0 else "❌ 오류 발생"
+                    msg = f"{status_emoji}\n```\n{output}\n```" if output.strip() else status_emoji
+                    app.client.chat_postMessage(
+                        channel=channel, thread_ts=thread_ts, text=msg
+                    )
             except Exception as e:
                 logger.error(f"spawn error: {e}")
                 app.client.chat_postMessage(
