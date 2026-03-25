@@ -45,8 +45,19 @@ def parse_screenshot_filename(basename: str) -> tuple:
 
 
 def parse_gif_filename(basename: str) -> tuple:
-    """Parse {video_id}_gif_{seconds}s.gif -> (video_id, seconds, 'gif')"""
+    """Parse gif filenames in multiple formats:
+    {video_id}_gif_{seconds}s.gif
+    {video_id}_action_{start}s_{dur}s.gif
+    """
     name = basename.rsplit(".", 1)[0]
+    # Try action format: {video_id}_action_{start}s_{dur}s
+    parts = name.split("_action_")
+    if len(parts) == 2:
+        video_id = parts[0]
+        rest = parts[1]  # e.g. "216s_15s"
+        timestamp_sec = rest.split("_")[0].replace("s", "")
+        return video_id, timestamp_sec, "gif"
+    # Try old format: {video_id}_gif_{seconds}s
     parts = name.rsplit("_", 2)
     if len(parts) >= 3 and parts[1] == "gif":
         video_id = parts[0]
