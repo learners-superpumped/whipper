@@ -164,22 +164,22 @@ def create_app():
 
                     # PASS 후 60초 지나면 Notion 업로드 후 강제 종료
                     if pass_detected_at and (time.time() - pass_detected_at > 60):
-                        # Notion에 task_dir 전체 업로드
-                        if notion_page_id:
+                        # Notion에 task_dir 전체 업로드 (bridge 시작 시 찾은 task_dir 사용)
+                        if notion_page_id and task_dir_found and os.path.isdir(task_dir_found):
                             try:
-                                newest_task = max(
-                                    [d for d in glob.glob("/tmp/whipper-2026-*") if os.path.isdir(d)],
-                                    key=os.path.getmtime, default=None
+                                subprocess.run(
+                                    [sys.executable, str(SCRIPTS_DIR / "notion" / "upload_task.py"),
+                                     notion_page_id, task_dir_found, "--status", "완료"],
+                                    timeout=60,
                                 )
-                                if newest_task:
-                                    subprocess.run(
-                                        [sys.executable, str(SCRIPTS_DIR / "notion" / "upload_task.py"),
-                                         notion_page_id, newest_task, "--status", "완료"],
-                                        timeout=30,
-                                    )
-                                    logger.info(f"Notion upload complete: {notion_page_id}")
+                                logger.info(f"Notion upload complete: {notion_page_id} from {task_dir_found}")
                             except Exception as e:
                                 logger.error(f"Notion upload failed: {e}")
+                        # Upload 완료 후 task_dir 정리
+                        if task_dir_found and os.path.isdir(task_dir_found):
+                            import shutil
+                            shutil.rmtree(task_dir_found, ignore_errors=True)
+                            logger.info(f"Cleaned up: {task_dir_found}")
                         logger.info("Force-killing claude after PASS grace period.")
                         process.kill()
                         break
