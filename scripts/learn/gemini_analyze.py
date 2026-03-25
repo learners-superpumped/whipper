@@ -123,11 +123,12 @@ CRITICAL RULES:
         from google.genai import types
 
         response = client.models.generate_content(
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             contents=[video_file, prompt],
             config=types.GenerateContentConfig(
                 max_output_tokens=65536,
                 response_mime_type="application/json",
+                media_resolution="low",
             ),
         )
 
