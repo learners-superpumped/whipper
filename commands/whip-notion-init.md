@@ -39,13 +39,20 @@ allowed-tools: [
 
 1. WHIPPER_NOTION_TOKEN 또는 NOTION_TOKEN 환경변수 확인
    - 없으면 안내: https://www.notion.so/my-integrations 에서 생성
-2. config/slack.json 존재 + 토큰 확인
+2. Slack 설정 확인 (`config/slack.json` 또는 환경변수)
    - 없으면 안내:
      - https://api.slack.com/apps 에서 새 앱 생성
      - Socket Mode 활성화 → App-Level Token (xapp-...)
      - Bot Token Scopes: app_mentions:read, chat:write, channels:history, channels:read
      - Event Subscriptions: app_mention, message.channels
      - Install to Workspace → Bot User OAuth Token (xoxb-...)
+     - 설정 방법:
+       - `config/slack.json`에 `workspace_domain`, `bot_token`, `app_token`, `bot_user_id` 저장 또는
+       - `WHIPPER_SLACK_WORKSPACE_DOMAIN`, `WHIPPER_SLACK_BOT_TOKEN`, `WHIPPER_SLACK_APP_TOKEN`, `WHIPPER_SLACK_BOT_USER_ID` 환경변수 사용
+3. launchd로 상시 실행하려면 현재 머신에서 아래를 한 번 실행:
+   ```bash
+   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/daemon/install_launch_agent.py --reload
+   ```
 
 ## Step 3: 결과 요약
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Query Notion DB for a page by Slack thread URL.
 
-Usage: python3 query_thread.py "https://learnerscompany.slack.com/archives/C0AHV8FCH6V/p1234"
+Usage: python3 query_thread.py "https://YOUR-WORKSPACE.slack.com/archives/C0AHV8FCH6V/p1234"
 stdout: PAGE_ID\tNAME\tITERATION\tSTATUS  or  NOT_FOUND
 """
 import sys

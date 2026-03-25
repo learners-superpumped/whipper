@@ -29,7 +29,7 @@
   "name": "whipper",
   "description": "Manager-Executor loop plugin. Defines success criteria, executes via subagents, evaluates ruthlessly, iterates until passed.",
   "author": {
-    "name": "nevermind"
+    "name": "whipper"
   }
 }
 ```
@@ -1460,7 +1460,7 @@ Run: `chmod +x tests/test_core.sh tests/test_api_keys.sh`
 
 - [ ] **Step 4: Run test_core.sh**
 
-Run: `cd /Users/nevermind/.claude/plugins/marketplaces/whipper && bash tests/test_core.sh`
+Run: `cd $HOME/.claude/plugins/marketplaces/whipper && bash tests/test_core.sh`
 Expected: All checks pass.
 
 ---

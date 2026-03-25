@@ -174,7 +174,7 @@ def test_run_scheduled_followups_passes_slack_context():
         "status": "블락드",
         "channel": "C123",
         "thread_ts": "1774434726.092599",
-        "slack_url": "https://learnerscompany.slack.com/archives/C123/p1774434726092599",
+        "slack_url": "https://example.slack.com/archives/C123/p1774434726092599",
         "last_edited_time": "2026-03-25T00:00:00.000Z",
         "age_minutes": 120,
         "followup_kind": "blocked",

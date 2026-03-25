@@ -156,7 +156,7 @@ def _page_title(page: dict) -> str:
 
 
 def _parse_slack_thread_url(url: str) -> tuple[str, str] | None:
-    match = re.match(r"^https://learnerscompany\.slack\.com/archives/([^/]+)/p(\d+)$", url or "")
+    match = re.match(r"^https://[^/]+\.slack\.com/archives/([^/]+)/p(\d+)$", url or "")
     if not match:
         return None
 

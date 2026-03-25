@@ -83,3 +83,33 @@ def test_think_and_research_commands_require_external_keys_and_manager_invariant
     assert "README만 읽어도 현재 작업 상태와 최종 결론을 이해할 수 있어야 한다." in manager
     assert "resources/gemini-raw.md" in manager
     assert "resources/chatgpt-research-raw.md" in manager
+
+
+def test_design_and_runtime_docs_match_current_runtime_shape():
+    design = _read("DESIGN.md")
+    launch_agent = _read("scripts/daemon/com.whipper.daemon.plist")
+    notion_init = _read("commands/whip-notion-init.md")
+
+    assert "bypassPermissions" in design
+    assert "dangerouslySkipPermission" not in design
+    assert "/tmp/whipper-" in design
+    assert ".whipper/tasks/" not in design
+    assert "WHIPPER_SLACK_WORKSPACE_DOMAIN" in design
+    assert "__PYTHON_BIN__" in launch_agent
+    assert "__WHIPPER_ROOT__" in launch_agent
+    assert "__PATH__" in launch_agent
+    assert "install_launch_agent.py --reload" in notion_init
+
+
+def test_repo_has_no_committed_personal_workspace_identifiers():
+    tracked_files = [
+        "README.md",
+        "DESIGN.md",
+        ".claude-plugin/plugin.json",
+        ".claude-plugin/marketplace.json",
+        "scripts/daemon/com.whipper.daemon.plist",
+        "commands/whip-notion-init.md",
+    ]
+    for rel_path in tracked_files:
+        assert "/Users/nevermind" not in _read(rel_path), rel_path
+        assert "learnerscompany.slack.com" not in _read(rel_path), rel_path

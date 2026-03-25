@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Common Notion API module for Whipper.
 
-Reads token and database_id from config/notion.json.
+Loads token and database ids from env vars or local ignored config/notion.json.
 Provides shared helpers for all Notion scripts.
 """
-import json
 import sys
 from pathlib import Path
 
@@ -14,6 +13,11 @@ except ImportError:
     print("FAILED", end="")
     sys.exit(1)
 
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(ROOT_DIR))
+
+from scripts.core.runtime_config import load_notion_config
+
 CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "notion.json"
 NOTION_API = "https://api.notion.com/v1/"
 NOTION_VERSION = "2022-06-28"
@@ -21,9 +25,7 @@ NOTION_VERSION = "2022-06-28"
 
 def load_config() -> dict:
     """Load config/notion.json. Returns dict with token, database_id, etc."""
-    if not CONFIG_PATH.exists():
-        return {}
-    return json.loads(CONFIG_PATH.read_text())
+    return load_notion_config(CONFIG_PATH)
 
 
 def get_headers() -> dict | None:

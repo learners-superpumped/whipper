@@ -1,4 +1,5 @@
 {
+  "workspace_domain": "your-workspace.slack.com",
   "bot_token": "xoxb-YOUR-BOT-TOKEN",
   "app_token": "xapp-YOUR-APP-TOKEN",
   "bot_user_id": "U-YOUR-BOT-ID"

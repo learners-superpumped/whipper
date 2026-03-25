@@ -320,7 +320,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 5: 테스트 실행**
 
-Run: `cd /Users/nevermind/.claude/plugins/marketplaces/whipper && python3 tests/test_notion_publisher.py`
+Run: `cd $HOME/.claude/plugins/marketplaces/whipper && python3 tests/test_notion_publisher.py`
 Expected: 6 passed, 0 failed
 
 - [ ] **Step 6: 커밋**
@@ -958,7 +958,7 @@ def main():
         <string>scripts/daemon/slack_bot.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/nevermind/.claude/plugins/marketplaces/whipper</string>
+    <string>$HOME/.claude/plugins/marketplaces/whipper</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -1175,7 +1175,7 @@ config/slack.json
   "name": "whipper",
   "description": "Manager-Executor loop with Slack bot, Notion workspace, and periodic todo execution. Defines success criteria, executes via subagents, evaluates ruthlessly, iterates until passed.",
   "author": {
-    "name": "nevermind"
+    "name": "whipper"
   }
 }
 ```

@@ -6,11 +6,11 @@
     <string>com.whipper.daemon</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/nevermind/miniconda3/bin/python3</string>
+        <string>__PYTHON_BIN__</string>
         <string>scripts/daemon/slack_bot.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/nevermind/.claude/plugins/marketplaces/whipper</string>
+    <string>__WHIPPER_ROOT__</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -22,7 +22,7 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/Users/nevermind/.local/bin:/Users/nevermind/miniconda3/bin:/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+        <string>__PATH__</string>
         <key>PYTHONUNBUFFERED</key>
         <string>1</string>
     </dict>

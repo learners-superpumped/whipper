@@ -386,7 +386,7 @@ git commit -m "feat: add Slack reporting to Executor"
 
 ```bash
 ps aux | grep "slack_bot" | grep python | grep -v grep | awk '{print $2}' | xargs kill 2>/dev/null
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 nohup python3 scripts/daemon/slack_bot.py > /tmp/whipper-daemon.log 2>&1 &
 sleep 3 && tail -3 /tmp/whipper-daemon.log
 ```

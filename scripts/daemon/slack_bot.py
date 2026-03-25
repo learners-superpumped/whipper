@@ -6,7 +6,6 @@ Notion/프로젝트 로직 = 0. 모든 지능은 Claude 세션 안에서.
 """
 import os
 import sys
-import json
 import re
 import subprocess
 import threading
@@ -22,7 +21,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("whipper-daemon")
 
-CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 STATE_FILE = Path(os.path.expanduser("~")) / ".claude" / "whipper.local.md"
@@ -31,6 +29,7 @@ STATE_FILE = Path(os.path.expanduser("~")) / ".claude" / "whipper.local.md"
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from scripts.slack.bridge import SlackBridge
 from scripts.core.local_env import export_whipper_aliases
+from scripts.core.runtime_config import build_slack_thread_url, load_slack_config
 
 try:
     from .claude_runtime import (
@@ -41,6 +40,7 @@ try:
     )
     from .run_lock import acquire_run_lock, release_run_lock
     from .scheduler import start_scheduler
+    from .dispatch import lookup_thread_page
 except ImportError:
     from claude_runtime import (
         build_claude_print_command,
@@ -50,14 +50,7 @@ except ImportError:
     )
     from run_lock import acquire_run_lock, release_run_lock
     from scheduler import start_scheduler
-
-
-def load_slack_config() -> dict:
-    config_path = CONFIG_DIR / "slack.json"
-    if not config_path.exists():
-        logger.error("config/slack.json not found. Copy slack.json.example and fill in tokens.")
-        sys.exit(1)
-    return json.loads(config_path.read_text())
+    from dispatch import lookup_thread_page
 
 
 def detect_skill(text: str) -> str:
@@ -77,6 +70,21 @@ def detect_skill(text: str) -> str:
 def clean_mention(text: str) -> str:
     """@whipper 멘션 태그 제거."""
     return re.sub(r"<@[A-Z0-9]+>", "", text).strip()
+
+
+def should_handle_followup_thread(
+    thread_ts: str | None,
+    responded_threads: set,
+    existing_thread: dict | None = None,
+) -> bool:
+    if not thread_ts:
+        return False
+    if thread_ts in responded_threads:
+        return True
+    if not existing_thread:
+        return False
+    responded_threads.add(thread_ts)
+    return True
 
 
 def resolve_final_state(
@@ -99,7 +107,8 @@ def notion_status_for(final_state: str) -> str:
 
 
 def build_slack_url(channel: str, thread_ts: str) -> str:
-    return f"https://learnerscompany.slack.com/archives/{channel}/p{thread_ts.replace('.', '')}"
+    workspace_domain = load_slack_config().get("workspace_domain", "")
+    return build_slack_thread_url(workspace_domain, channel, thread_ts)
 
 
 def build_final_slack_message(final_state: str, reason: str, output: str) -> str:
@@ -451,8 +460,15 @@ def spawn_dispatch(slack_client, bridge: SlackBridge, prompt: str, skill: str, c
 
 def create_app():
     cfg = load_slack_config()
-    if not cfg.get("bot_token") or not cfg.get("app_token"):
-        logger.error("Slack tokens not configured. Run /whipper:whip-notion-init first.")
+    if (
+        not cfg.get("bot_token")
+        or not cfg.get("app_token")
+        or not cfg.get("workspace_domain")
+    ):
+        logger.error(
+            "Slack config incomplete. Set bot/app tokens and workspace_domain, "
+            "or run /whipper:whip-notion-init first."
+        )
         sys.exit(1)
 
     app = App(token=cfg["bot_token"])
@@ -485,11 +501,16 @@ def create_app():
         if event.get("bot_id") or event.get("user") == bot_user_id:
             return
         thread_ts = event.get("thread_ts")
-        if not thread_ts or thread_ts not in responded_threads:
+        channel = event["channel"]
+        existing_thread = None
+        if thread_ts not in responded_threads:
+            existing_thread = lookup_thread_page(channel, thread_ts)
+        if not should_handle_followup_thread(
+            thread_ts, responded_threads, existing_thread
+        ):
             return
 
         text = event.get("text", "")
-        channel = event["channel"]
         logger.info("Received follow-up message channel=%s thread=%s", channel, thread_ts)
         slack_context = f"[Slack thread: {channel}/{thread_ts}] "
         skill = detect_skill(text)

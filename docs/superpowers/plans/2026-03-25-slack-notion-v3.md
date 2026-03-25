@@ -327,7 +327,7 @@ def test_cleanup():
 
 def test_cleanup_safety():
     """non-/tmp/ 경로는 삭제하지 않음."""
-    cleanup_task_dir("/Users/nevermind/important")  # should do nothing
+    cleanup_task_dir("/Users/example/important")  # should do nothing
     assert True  # no error
 
 if __name__ == "__main__":
@@ -644,7 +644,7 @@ if __name__ == "__main__":
         <string>scripts/daemon/slack_bot.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/nevermind/.claude/plugins/marketplaces/whipper</string>
+    <string>$HOME/.claude/plugins/marketplaces/whipper</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -851,7 +851,7 @@ allowed-tools에 `mcp__claude_ai_Notion__notion-update-page` 추가.
 {
   "name": "whipper",
   "description": "Manager-Executor loop with Slack bot and Notion workspace. Real-time Slack interaction, Notion dashboard and publishing, ruthless evaluation.",
-  "author": { "name": "nevermind" }
+  "author": { "name": "whipper" }
 }
 ```
 

@@ -355,7 +355,7 @@ if __name__ == "__main__":
 ```python
 #!/usr/bin/env python3
 """Slack Thread URL로 기존 일감 검색.
-Usage: python3 query_thread.py "https://learnerscompany.slack.com/..."
+Usage: python3 query_thread.py "https://example.slack.com/..."
 stdout: PAGE_ID NAME ITERATION STATUS (탭 구분) 또는 NOT_FOUND
 """
 import argparse
@@ -476,7 +476,7 @@ git commit -m "feat: remove Notion MCP tools from whip.md, add rm/echo bash patt
 ### 0.2 — 기존 일감 확인 및 재개
 
 1. Slack 컨텍스트에서 Slack URL을 구성:
-   `https://learnerscompany.slack.com/archives/{CHANNEL}/p{THREAD_TS에서 . 제거}`
+   `https://example.slack.com/archives/{CHANNEL}/p{THREAD_TS에서 . 제거}`
 
 2. 기존 일감 검색:
    ```bash
@@ -655,7 +655,7 @@ python3 scripts/notion/update_status.py PAGE_ID --status 완료
 # Expected: OK
 
 # 4. 스레드 검색
-python3 scripts/notion/query_thread.py "https://learnerscompany.slack.com/archives/C0AHV8FCH6V/p1774406753288779"
+python3 scripts/notion/query_thread.py "https://example.slack.com/archives/C0AHV8FCH6V/p1774406753288779"
 # Expected: NOT_FOUND (or PAGE_ID if exists)
 ```
 
@@ -664,7 +664,7 @@ python3 scripts/notion/query_thread.py "https://learnerscompany.slack.com/archiv
 ```bash
 # 데몬 재시작
 ps aux | grep "slack_bot" | grep python | grep -v grep | awk '{print $2}' | xargs kill
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 nohup python3 scripts/daemon/slack_bot.py > /tmp/whipper-daemon.log 2>&1 &
 ```
 

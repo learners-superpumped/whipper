@@ -7,3 +7,4 @@ __pycache__/
 .DS_Store
 config/slack.json
 config/notion.json
+tasks/

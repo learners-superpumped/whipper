@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Shared whipper Slack/Notion dispatch helpers."""
-import json
 import logging
 import os
 import re
@@ -12,7 +11,6 @@ import time
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-CONFIG_DIR = ROOT_DIR / "config"
 SCRIPTS_DIR = ROOT_DIR / "scripts"
 STATE_FILE = Path(os.path.expanduser("~")) / ".claude" / "whipper.local.md"
 
@@ -20,6 +18,7 @@ sys.path.insert(0, str(ROOT_DIR))
 
 from scripts.slack.bridge import SlackBridge
 from scripts.core.local_env import export_whipper_aliases
+from scripts.core.runtime_config import build_slack_thread_url, load_slack_config
 try:
     from .claude_runtime import (
         build_claude_print_command,
@@ -38,14 +37,6 @@ except ImportError:
     from run_lock import acquire_run_lock, release_run_lock
 
 logger = logging.getLogger("whipper-daemon")
-
-
-def load_slack_config() -> dict:
-    config_path = CONFIG_DIR / "slack.json"
-    if not config_path.exists():
-        logger.error("config/slack.json not found. Copy slack.json.example and fill in tokens.")
-        sys.exit(1)
-    return json.loads(config_path.read_text())
 
 
 def resolve_final_state(
@@ -67,7 +58,8 @@ def notion_status_for(final_state: str) -> str:
 
 
 def build_slack_url(channel: str, thread_ts: str) -> str:
-    return f"https://learnerscompany.slack.com/archives/{channel}/p{thread_ts.replace('.', '')}"
+    workspace_domain = load_slack_config().get("workspace_domain", "")
+    return build_slack_thread_url(workspace_domain, channel, thread_ts)
 
 
 def build_final_slack_message(final_state: str, reason: str, output: str) -> str:
@@ -121,9 +113,8 @@ def parse_thread_lookup_result(raw: str) -> dict | None:
     }
 
 
-def determine_thread_page(prompt: str, skill: str, channel: str, thread_ts: str) -> dict:
+def lookup_thread_page(channel: str, thread_ts: str) -> dict | None:
     slack_url = build_slack_url(channel, thread_ts)
-
     query = subprocess.run(
         [sys.executable, str(SCRIPTS_DIR / "notion" / "query_thread.py"), slack_url],
         capture_output=True,
@@ -131,18 +122,27 @@ def determine_thread_page(prompt: str, skill: str, channel: str, thread_ts: str)
         timeout=15,
     )
     existing = parse_thread_lookup_result(query.stdout)
+    if not existing:
+        return None
+
+    page_id = existing["page_id"]
+    return {
+        "mode": "existing",
+        "page_id": page_id,
+        "notion_url": f"https://www.notion.so/{page_id}",
+        "name": existing["name"],
+        "iteration": existing["iteration"],
+        "status": existing["status"],
+    }
+
+
+def determine_thread_page(prompt: str, skill: str, channel: str, thread_ts: str) -> dict:
+    existing = lookup_thread_page(channel, thread_ts)
     if existing:
-        page_id = existing["page_id"]
-        return {
-            "mode": "existing",
-            "page_id": page_id,
-            "notion_url": f"https://www.notion.so/{page_id}",
-            "name": existing["name"],
-            "iteration": existing["iteration"],
-            "status": existing["status"],
-        }
+        return existing
 
     name = prompt.split("]")[-1].strip()[:50] if "]" in prompt else prompt[:50]
+    slack_url = build_slack_url(channel, thread_ts)
     create = subprocess.run(
         [
             sys.executable,

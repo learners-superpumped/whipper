@@ -1005,7 +1005,7 @@ git commit -m "feat: integration tests and hook updates for Slack/Notion"
   "name": "whipper",
   "description": "Manager-Executor loop with Slack inbox, Notion todo sync, and periodic cron execution. Defines success criteria, executes via subagents, evaluates ruthlessly, iterates until passed.",
   "author": {
-    "name": "nevermind"
+    "name": "whipper"
   }
 }
 ```

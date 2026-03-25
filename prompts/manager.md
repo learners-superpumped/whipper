@@ -24,7 +24,7 @@
 
 명령을 처리하기 전에, 현재 명령이 이전 작업의 후속/연장인지 확인한다.
 
-1. config/notion.json의 database_id를 확인한다
+1. Notion 설정은 `config/notion.json` 또는 환경변수(`WHIPPER_NOTION_DATABASE_ID`, `NOTION_DATABASE_ID`)로 들어올 수 있다
 2. 먼저 state에서 `thread_page_mode`를 읽는다:
    - `THREAD_PAGE_MODE=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/core/state.sh get thread_page_mode 2>/dev/null || true)`
    - `THREAD_PAGE_MODE == existing` 이면 데몬이 이미 같은 Slack thread의 기존 Notion 페이지를 찾은 것이다.
@@ -40,8 +40,7 @@
 3. **database_id가 있고, Slack 컨텍스트가 있으며, `THREAD_PAGE_MODE`가 비어있거나 unknown이면**:
    - Slack URL을 구성하고 query_thread.py로 검색:
      ```bash
-     THREAD_TS_NO_DOT=$(printf '%s' "$THREAD_TS" | tr -d '.')
-     SLACK_URL="https://learnerscompany.slack.com/archives/${CHANNEL}/p${THREAD_TS_NO_DOT}"
+     SLACK_URL=$(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/core/slack_url.py" "$CHANNEL" "$THREAD_TS")
      EXISTING=$(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/notion/query_thread.py "$SLACK_URL")
      ```
    - 위 명령이 실패하면 새 작업으로 간주하고 계속 진행한다
@@ -53,7 +52,7 @@
      d. 로드된 컨텍스트를 Executor 프롬프트에 포함
      e. 1단계로 건너뛰지 않고, 이전 성공기준을 재사용하여 3단계(Executor 디스패치)로 진행
    - **일치하는 일감이 없으면**: 새 작업으로 진행
-4. **database_id가 없으면**: 건너뜀 (Notion 미설정 호환)
+4. **query_thread.py가 설정 부족으로 실패하거나 database_id가 없으면**: 건너뜀 (Notion 미설정 호환)
 5. **관련 없으면**: 새 작업으로 진행
 
 ### 0.3 — 스킬별 필수 기준

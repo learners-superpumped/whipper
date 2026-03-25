@@ -13,6 +13,7 @@ from slack_bot import (
     detect_skill,
     extract_frontmatter_value,
     parse_thread_lookup_result,
+    should_handle_followup_thread,
     wait_for_task_dir,
 )
 
@@ -59,10 +60,18 @@ status: running
 
 
 def test_build_slack_url():
-    assert (
-        build_slack_url("C123", "1774434726.092599")
-        == "https://learnerscompany.slack.com/archives/C123/p1774434726092599"
-    )
+    old = os.environ.get("WHIPPER_SLACK_WORKSPACE_DOMAIN")
+    os.environ["WHIPPER_SLACK_WORKSPACE_DOMAIN"] = "example.slack.com"
+    try:
+        assert (
+            build_slack_url("C123", "1774434726.092599")
+            == "https://example.slack.com/archives/C123/p1774434726092599"
+        )
+    finally:
+        if old is None:
+            os.environ.pop("WHIPPER_SLACK_WORKSPACE_DOMAIN", None)
+        else:
+            os.environ["WHIPPER_SLACK_WORKSPACE_DOMAIN"] = old
 
 
 def test_parse_thread_lookup_result():
@@ -96,6 +105,22 @@ def test_apply_thread_page_env():
     assert env["WHIPPER_THREAD_PAGE_NAME"] == "Existing Task"
     assert env["WHIPPER_THREAD_PAGE_ITERATION"] == "4"
     assert env["WHIPPER_THREAD_PAGE_STATUS"] == "진행중"
+
+
+def test_should_handle_followup_thread_known_thread():
+    responded_threads = set()
+    assert should_handle_followup_thread(
+        "1774434726.092599",
+        responded_threads,
+        {"page_id": "page123"},
+    )
+    assert "1774434726.092599" in responded_threads
+
+
+def test_should_handle_followup_thread_unknown_thread():
+    responded_threads = set()
+    assert not should_handle_followup_thread("1774434726.092599", responded_threads, None)
+    assert not responded_threads
 
 
 def test_wait_for_task_dir_matches_expected_thread():

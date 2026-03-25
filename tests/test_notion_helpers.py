@@ -22,7 +22,7 @@ def test_list_projects_parses_rows():
                     "Name": {"title": [{"plain_text": "Task A"}]},
                     "Status": {"select": {"name": "완료"}},
                     "Skill": {"select": {"name": "whip-think"}},
-                    "Slack Thread": {"url": "https://learnerscompany.slack.com/archives/C123/p1"},
+                    "Slack Thread": {"url": "https://example.slack.com/archives/C123/p1"},
                 },
             }
         ]
@@ -45,7 +45,7 @@ def test_list_projects_parses_rows():
             "status": "완료",
             "skill": "whip-think",
             "created": "2026-03-26T00:00:00.000Z",
-            "slack_thread": "https://learnerscompany.slack.com/archives/C123/p1",
+            "slack_thread": "https://example.slack.com/archives/C123/p1",
         }
     ]
 

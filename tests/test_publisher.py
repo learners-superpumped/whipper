@@ -58,7 +58,7 @@ def test_cleanup():
 
 def test_cleanup_safety():
     """non-/tmp/whipper- 경로는 삭제하지 않음."""
-    cleanup_task_dir("/Users/nevermind/important")
+    cleanup_task_dir("/Users/example/important")
     cleanup_task_dir("/tmp/other-stuff")
     assert True
 

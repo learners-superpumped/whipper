@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3, Notion REST API, yt-dlp (기존), Notion MCP tools (DB 생성 시)
 
-**Plugin Root:** `/Users/nevermind/.claude/plugins/marketplaces/whipper/`
+**Plugin Root:** `$HOME/.claude/plugins/marketplaces/whipper/`
 
 ---
 
@@ -46,13 +46,13 @@ def get_video_database_id() -> str | None:
 
 - [ ] **Step 2: import 확인**
 
-Run: `cd /Users/nevermind/.claude/plugins/marketplaces/whipper/scripts/notion && python3 -c "from api import get_video_database_id; print('OK')"`
+Run: `cd $HOME/.claude/plugins/marketplaces/whipper/scripts/notion && python3 -c "from api import get_video_database_id; print('OK')"`
 Expected: `OK`
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 git add scripts/notion/api.py
 git commit -m "feat: add get_video_database_id() helper to Notion API module"
 ```
@@ -139,13 +139,13 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: 구문 확인**
 
-Run: `cd /Users/nevermind/.claude/plugins/marketplaces/whipper/scripts/notion && python3 -c "import ast; ast.parse(open('init_video_db.py').read()); print('OK')"`
+Run: `cd $HOME/.claude/plugins/marketplaces/whipper/scripts/notion && python3 -c "import ast; ast.parse(open('init_video_db.py').read()); print('OK')"`
 Expected: `OK`
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 git add scripts/notion/init_video_db.py
 git commit -m "feat: add YouTube video tracking DB init script"
 ```
@@ -296,13 +296,13 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: 구문 확인**
 
-Run: `cd /Users/nevermind/.claude/plugins/marketplaces/whipper/scripts/notion && python3 -c "import ast; ast.parse(open('query_videos.py').read()); print('OK')"`
+Run: `cd $HOME/.claude/plugins/marketplaces/whipper/scripts/notion && python3 -c "import ast; ast.parse(open('query_videos.py').read()); print('OK')"`
 Expected: `OK`
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 git add scripts/notion/query_videos.py
 git commit -m "feat: add query_videos.py with server-side Notion filters"
 ```
@@ -419,13 +419,13 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: 구문 확인**
 
-Run: `cd /Users/nevermind/.claude/plugins/marketplaces/whipper/scripts/notion && python3 -c "import ast; ast.parse(open('register_video.py').read()); print('OK')"`
+Run: `cd $HOME/.claude/plugins/marketplaces/whipper/scripts/notion && python3 -c "import ast; ast.parse(open('register_video.py').read()); print('OK')"`
 Expected: `OK`
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 git add scripts/notion/register_video.py
 git commit -m "feat: add register_video.py for tracking DB registration"
 ```
@@ -494,7 +494,7 @@ duration=3700 → `1:01:40`, duration=125 → `2:05`, duration=0 → `N/A`
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 git add scripts/learn/render_notion_md.py
 git commit -m "feat: enhance metadata display with table format and hour support"
 ```
@@ -592,7 +592,7 @@ URL이 채널(@로 시작)이면:
 - [ ] **Step 2: Commit**
 
 ```bash
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 git add prompts/executor-learn.md
 git commit -m "feat: add dedup + tracking + YouTube embed to both single/channel modes"
 ```
@@ -613,18 +613,18 @@ Notion MCP의 `notion-search`로 적절한 페이지를 찾을 수 있다.
 
 - [ ] **Step 2: init_video_db.py 실행**
 
-Run: `cd /Users/nevermind/.claude/plugins/marketplaces/whipper/scripts/notion && python3 init_video_db.py --parent-page-id {PAGE_ID}`
+Run: `cd $HOME/.claude/plugins/marketplaces/whipper/scripts/notion && python3 init_video_db.py --parent-page-id {PAGE_ID}`
 Expected: 32자 DB ID 출력
 
 - [ ] **Step 3: config 확인**
 
-Run: `cat /Users/nevermind/.claude/plugins/marketplaces/whipper/config/notion.json`
+Run: `cat $HOME/.claude/plugins/marketplaces/whipper/config/notion.json`
 Expected: `video_database_id` 필드 존재
 
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 git add config/notion.json
 git commit -m "feat: register YouTube video tracking database ID"
 ```

@@ -21,9 +21,9 @@ Check `.claude/whipper.local.md`:
 - If not: "No active whipper loop"
 
 ## Project History (Notion 우선)
-1. Read config/notion.json에서 database_id 확인
-2. **database_id가 있으면**: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/notion/list_projects.py" --limit 10` 로 최근 프로젝트 조회
-3. **database_id가 없으면**: `~/.claude/whipper-logs/index.json`에서 읽기 (하위 호환)
+1. Notion 설정은 `config/notion.json` 또는 환경변수(`WHIPPER_NOTION_DATABASE_ID`, `NOTION_DATABASE_ID`)로 들어올 수 있다고 가정한다
+2. 먼저 `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/notion/list_projects.py" --limit 10` 로 최근 프로젝트 조회를 시도한다
+3. 위 명령이 설정 부족으로 실패하면 `~/.claude/whipper-logs/index.json`에서 읽기 (하위 호환)
 
 Format:
 ```

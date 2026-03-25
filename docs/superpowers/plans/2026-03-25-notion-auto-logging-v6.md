@@ -379,7 +379,7 @@ rm -rf /tmp/whipper-2026-03-25-*
 rm -rf ~/.claude/plugins/cache/whipper/whipper/unknown
 cp -r ~/.claude/plugins/marketplaces/whipper ~/.claude/plugins/cache/whipper/whipper/unknown
 # 데몬 시작
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 nohup python3 scripts/daemon/slack_bot.py > /tmp/whipper-daemon.log 2>&1 &
 ```
 

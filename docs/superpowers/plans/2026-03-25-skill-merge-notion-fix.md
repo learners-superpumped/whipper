@@ -8,8 +8,8 @@
 
 **Tech Stack:** Python 3, Notion REST API, Notion MCP
 
-**Plugin Root:** `/Users/nevermind/.claude/plugins/marketplaces/whipper/`
-**Skill Root:** `/Users/nevermind/.claude/skills/youtube-summarize/`
+**Plugin Root:** `$HOME/.claude/plugins/marketplaces/whipper/`
+**Skill Root:** `$HOME/.claude/skills/youtube-summarize/`
 
 ---
 
@@ -68,7 +68,7 @@ git commit -m "feat: youtube-summarize v3 skill - backup before merge into whip-
 - [ ] **Step 1: v3 스크립트 복사**
 
 ```bash
-cd /Users/nevermind/.claude/plugins/marketplaces/whipper
+cd $HOME/.claude/plugins/marketplaces/whipper
 
 # v3 스크립트를 whip-learn에 복사 (덮어쓰기)
 cp ~/.claude/skills/youtube-summarize/scripts/gemini_analyze.py scripts/learn/
