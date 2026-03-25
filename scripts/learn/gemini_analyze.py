@@ -131,16 +131,33 @@ CRITICAL RULES:
 
 
         from google.genai import types
+        config_kwargs = {
+            "max_output_tokens": 65536,
+            "response_mime_type": "application/json",
+        }
+        media_resolution = getattr(types, "MediaResolution", None)
+        if media_resolution is not None and hasattr(
+            media_resolution, "MEDIA_RESOLUTION_LOW"
+        ):
+            config_kwargs["media_resolution"] = (
+                media_resolution.MEDIA_RESOLUTION_LOW
+            )
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[video_file, prompt],
-            config=types.GenerateContentConfig(
-                max_output_tokens=65536,
-                response_mime_type="application/json",
-                media_resolution="low",
-            ),
-        )
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[video_file, prompt],
+                config=types.GenerateContentConfig(**config_kwargs),
+            )
+        except TypeError as exc:
+            if "media_resolution" not in str(exc):
+                raise
+            config_kwargs.pop("media_resolution", None)
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[video_file, prompt],
+                config=types.GenerateContentConfig(**config_kwargs),
+            )
 
         text = response.text.strip()
         result = json.loads(text)

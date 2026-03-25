@@ -140,6 +140,27 @@ def divider_block():
     return {"object": "block", "type": "divider", "divider": {}}
 
 
+def infer_final_summary(task_dir: str, status: str | None = None) -> str:
+    td = Path(task_dir)
+    lines = []
+    if status:
+        lines.append(f"- 상태: {status}")
+
+    answer_path = td / "deliverables" / "answer.txt"
+    if answer_path.exists():
+        answer = answer_path.read_text().strip()
+        if answer:
+            lines.append(f"- 최종 답변: {answer}")
+
+    manager_evals = sorted((td / "iterations").glob("*manager-eval.md")) if (td / "iterations").exists() else []
+    if manager_evals:
+        lines.append(f"- 마지막 평가 파일: {manager_evals[-1].name}")
+
+    if not lines:
+        return ""
+    return "## 최종 상태 요약\n\n" + "\n".join(lines)
+
+
 def upload_file(page_id, heading, content):
     """Append a heading + parsed markdown blocks to the page."""
     if not content.strip():
@@ -150,9 +171,13 @@ def upload_file(page_id, heading, content):
         notion_patch(f"blocks/{page_id}/children", {"children": blocks[i:i + 100]})
 
 
-def upload_all(page_id, task_dir):
+def upload_all(page_id, task_dir, status: str | None = None):
     """Upload everything in task_dir to the Notion page."""
     td = Path(task_dir)
+
+    summary = infer_final_summary(task_dir, status=status)
+    if summary:
+        upload_file(page_id, "📌 최종 상태 요약", summary)
 
     readme = td / "README.md"
     if readme.exists():
@@ -215,7 +240,7 @@ def main():
     if args.iteration:
         upload_iteration(args.page_id, args.task_dir, args.iteration)
     else:
-        upload_all(args.page_id, args.task_dir)
+        upload_all(args.page_id, args.task_dir, status=args.status)
 
     effective_iteration = (
         args.set_iteration if args.set_iteration is not None else args.iteration

@@ -8,7 +8,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts" / "notion"))
 
-from upload_task import update_page_properties, upload_all, upload_iteration
+from upload_task import infer_final_summary, update_page_properties, upload_all, upload_iteration
 
 
 def test_upload_iteration_accepts_zero_padded_and_plain_prefixes():
@@ -76,6 +76,19 @@ def test_update_page_properties_sets_status_and_iteration():
             },
         )
     ]
+
+
+def test_infer_final_summary_uses_status_and_answer():
+    with tempfile.TemporaryDirectory() as tmp:
+        task_dir = Path(tmp)
+        (task_dir / "deliverables").mkdir()
+        (task_dir / "iterations").mkdir()
+        (task_dir / "deliverables" / "answer.txt").write_text("225")
+        (task_dir / "iterations" / "01-manager-eval.md").write_text("PASS")
+        summary = infer_final_summary(str(task_dir), status="완료")
+        assert "상태: 완료" in summary
+        assert "최종 답변: 225" in summary
+        assert "01-manager-eval.md" in summary
 
 
 if __name__ == "__main__":

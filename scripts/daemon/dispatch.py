@@ -21,10 +21,20 @@ sys.path.insert(0, str(ROOT_DIR))
 from scripts.slack.bridge import SlackBridge
 from scripts.core.local_env import export_whipper_aliases
 try:
-    from .claude_runtime import build_claude_print_command
+    from .claude_runtime import (
+        build_claude_print_command,
+        cleanup_output_log,
+        create_output_log,
+        read_output_tail,
+    )
     from .run_lock import acquire_run_lock, release_run_lock
 except ImportError:
-    from claude_runtime import build_claude_print_command
+    from claude_runtime import (
+        build_claude_print_command,
+        cleanup_output_log,
+        create_output_log,
+        read_output_tail,
+    )
     from run_lock import acquire_run_lock, release_run_lock
 
 logger = logging.getLogger("whipper-daemon")
@@ -226,6 +236,8 @@ def detect_latest_iteration(task_dir: str) -> int:
 
 def run_dispatch(slack_client, bridge: SlackBridge, prompt: str, skill: str, channel: str, thread_ts: str):
     lock_handle = None
+    output_handle = None
+    output_path = None
     try:
         lock_handle = acquire_run_lock(blocking=False)
         if lock_handle is None:
@@ -254,14 +266,15 @@ def run_dispatch(slack_client, bridge: SlackBridge, prompt: str, skill: str, cha
         claude_env = export_whipper_aliases(os.environ.copy())
         claude_env["CLAUDE_PLUGIN_ROOT"] = str(ROOT_DIR)
         claude_env = apply_thread_page_env(claude_env, thread_page)
+        output_handle, output_path = create_output_log()
         process = subprocess.Popen(
             build_claude_print_command(
                 full_prompt,
                 ROOT_DIR,
                 permission_mode="bypassPermissions",
             ),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=output_handle,
+            stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
             text=True,
             cwd=os.path.expanduser("~"),
@@ -339,9 +352,11 @@ def run_dispatch(slack_client, bridge: SlackBridge, prompt: str, skill: str, cha
                 last_ping = time.time()
             time.sleep(5)
 
-        output = process.stdout.read() if process.stdout else ""
-        if len(output) > 500:
-            output = "...\n" + output[-500:]
+        if output_handle is not None:
+            output_handle.flush()
+            output_handle.close()
+            output_handle = None
+        output = read_output_tail(output_path) if output_path else ""
 
         final_state, final_reason = resolve_final_state(
             final_status_marker or None, process.returncode, timed_out
@@ -386,6 +401,10 @@ def run_dispatch(slack_client, bridge: SlackBridge, prompt: str, skill: str, cha
             channel=channel, thread_ts=thread_ts, text=f"❌ 오류: {e}"
         )
     finally:
+        if output_handle is not None:
+            output_handle.close()
+        if output_path is not None:
+            cleanup_output_log(output_path)
         release_run_lock(lock_handle)
 
 

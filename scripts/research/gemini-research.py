@@ -11,6 +11,22 @@ sys.path.insert(0, str(ROOT))
 
 from scripts.core.local_env import get_local_env_value
 
+
+def extract_interaction_text(interaction) -> str:
+    outputs = getattr(interaction, "outputs", None) or []
+    texts = []
+    for output in outputs:
+        text = getattr(output, "text", None)
+        if text:
+            texts.append(text)
+            continue
+        parts = getattr(output, "parts", None) or []
+        for part in parts:
+            part_text = getattr(part, "text", None)
+            if part_text:
+                texts.append(part_text)
+    return "\n\n".join(texts).strip()
+
 def main():
     prompt = sys.argv[1] if len(sys.argv) > 1 else sys.stdin.read().strip()
     if not prompt:
@@ -33,8 +49,8 @@ def main():
 
     # Start deep research interaction
     interaction = client.interactions.create(
+        input=prompt,
         agent=model_name,
-        user_message=prompt,
         background=True,
         store=True,
     )
@@ -46,9 +62,9 @@ def main():
 
     while elapsed < max_wait:
         status = client.interactions.get(interaction.id)
-        if status.status == "COMPLETED":
+        if status.status == "completed":
             break
-        if status.status == "FAILED":
+        if status.status in {"failed", "cancelled", "incomplete"}:
             print(f"Error: Research failed — {status.error}", file=sys.stderr)
             sys.exit(1)
         time.sleep(poll_interval)
@@ -60,12 +76,15 @@ def main():
         sys.exit(1)
 
     # Extract result
-    result = status.response.text if hasattr(status.response, "text") else str(status.response)
+    result = extract_interaction_text(status)
+    if not result:
+        result = json.dumps(status.to_json_dict(), ensure_ascii=False, indent=2)
 
     # Extract sources
-    if hasattr(status, "grounding_metadata") and status.grounding_metadata:
+    grounding = getattr(status, "grounding_metadata", None)
+    if grounding:
         result += "\n\n## Sources\n"
-        for chunk in status.grounding_metadata.grounding_chunks:
+        for chunk in grounding.grounding_chunks:
             if hasattr(chunk, "web") and chunk.web:
                 result += f"- [{chunk.web.title}]({chunk.web.uri})\n"
 

@@ -8,6 +8,7 @@ and REST APIs, not ambient MCP state from the operator's desktop session.
 
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 
 EMPTY_MCP_CONFIG = '{"mcpServers":{}}'
@@ -31,3 +32,31 @@ def build_claude_print_command(
         command.extend(["--permission-mode", permission_mode])
     command.extend(["-p", prompt])
     return command
+
+
+def create_output_log() -> tuple[object, Path]:
+    handle = tempfile.NamedTemporaryFile(
+        mode="w+",
+        encoding="utf-8",
+        prefix="whipper-claude-",
+        suffix=".log",
+        delete=False,
+    )
+    return handle, Path(handle.name)
+
+
+def read_output_tail(log_path: str | Path, max_chars: int = 500) -> str:
+    path = Path(log_path)
+    if not path.exists():
+        return ""
+    text = path.read_text(errors="replace")
+    if len(text) <= max_chars:
+        return text
+    return "...\n" + text[-max_chars:]
+
+
+def cleanup_output_log(log_path: str | Path) -> None:
+    try:
+        Path(log_path).unlink()
+    except FileNotFoundError:
+        pass
