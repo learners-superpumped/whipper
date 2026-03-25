@@ -90,7 +90,7 @@ Slack 컨텍스트(CHANNEL, THREAD_TS)가 있으면, post.sh로 스레드에 보
 | 1 | {기준1} |
 | 2 | {기준2} |
 
-📎 Notion: {notion_page_url} (있는 경우)
+📎 Notion: https://www.notion.so/{notion_page_id} (notion_page_id가 있는 경우, 하이픈 제거한 ID 사용)
 ```
 
 ## 3단계: Executor 디스패치
@@ -147,7 +147,7 @@ Slack 컨텍스트(CHANNEL, THREAD_TS)가 있으면, 평가 결과를 post.sh로
 ✅ *전체 통과! (Iteration {N})*
 - 기준 1: ✅ {내용}
 - 기준 2: ✅ {내용}
-📎 Notion: {notion_page_url}
+📎 Notion: https://www.notion.so/{notion_page_id} (하이픈 제거)
 ```
 
 **하나라도 FAIL:**
@@ -162,24 +162,16 @@ Slack 컨텍스트(CHANNEL, THREAD_TS)가 있으면, 평가 결과를 post.sh로
 
 - 모든 기준 PASS:
   1. .claude/whipper.local.md에 status: passed로 수정 (sed 사용)
-  2. {task_dir}/README.md 업데이트 (종료 시간, 결과 요약)
-  3. **Notion 퍼블리시** (.claude/whipper.local.md의 notion_page_id가 비어있지 않으면):
-     a. `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/notion/publisher.py "$TASK_DIR" --upload-media` 실행
-        → stdout: Notion 페이지용 마크다운 콘텐츠
-     b. notion-update-page로 페이지 본문에 결과물 작성
-     c. Status 속성을 "완료"로 변경
-  4. Memory Updater 서브에이전트 디스패치 (Agent 도구, mode: bypassPermissions):
-     - prompts/memory-updater.md를 Read로 읽어서 프롬프트에 포함
-     - task_dir 경로 전달
-     - memory/profile.json, memory/rules.json 경로 전달
-  5. task_dir 정리: `python3 -c "import shutil; shutil.rmtree('$TASK_DIR')"` (/tmp/ 삭제)
-  6. 세션 종료
+  2. **Notion 상태 변경** (notion_page_id가 있으면):
+     - notion-update-page로 Status를 "완료"로 변경
+     - 결과 요약(성공기준 테이블 + 최종 답)을 페이지 본문에 추가
+  3. task_dir 정리: `python3 -c "import shutil; shutil.rmtree('$TASK_DIR')"` (/tmp/ 삭제)
+  4. **즉시 세션 종료** — 빠른 종료가 최우선. Memory Updater, Publisher는 생략한다.
 
 - 하나라도 FAIL:
   1. .claude/whipper.local.md에 status: failed로 수정 (sed 사용)
   2. notion_page_id가 있으면: Notion 페이지의 Iteration 속성을 현재 N으로 업데이트
-  3. Memory Updater 서브에이전트 디스패치 (FAIL 교훈 저장용 — PASS와 동일한 방식)
-  4. 세션 종료 (Stop hook이 block하여 다음 iteration으로 재주입)
+  3. 세션 종료 (Stop hook이 block하여 다음 iteration으로 재주입)
 
 ## 원칙
 
