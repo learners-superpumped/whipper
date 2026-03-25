@@ -103,12 +103,13 @@ def create_app():
                     logger.info(f"Bridge started for: {task_dirs[0]}")
 
                 # 프로세스 완료 대기 (30분 타임아웃, 5분 간격 핑)
-                # State 파일이 삭제되면 PASS 완료로 간주 → 60초 후 kill
+                # State 파일이 생성된 후 삭제되면 PASS → 60초 후 kill
                 timeout = 1800
                 start = time.time()
                 last_ping = start
                 pass_detected_at = None
-                state_file = Path(os.path.expanduser("~")) / ".claude" / "plugins" / "marketplaces" / "whipper" / ".claude" / "whipper.local.md"
+                state_file_ever_existed = False
+                state_file = Path(os.path.expanduser("~")) / ".claude" / "whipper.local.md"
 
                 while process.poll() is None:
                     elapsed = time.time() - start
@@ -121,10 +122,14 @@ def create_app():
                         )
                         return
 
-                    # PASS 감지: state 파일이 삭제되면 Manager가 PASS 처리한 것
-                    if not state_file.exists() and pass_detected_at is None:
+                    # State 파일 존재 추적
+                    if state_file.exists():
+                        state_file_ever_existed = True
+
+                    # PASS 감지: state 파일이 한번 존재했다가 삭제된 경우만
+                    if state_file_ever_existed and not state_file.exists() and pass_detected_at is None:
                         pass_detected_at = time.time()
-                        logger.info("PASS detected (state file deleted). Waiting 60s for cleanup...")
+                        logger.info("PASS detected (state file created then deleted). Waiting 60s...")
 
                     # PASS 후 60초 지나면 강제 종료
                     if pass_detected_at and (time.time() - pass_detected_at > 60):
