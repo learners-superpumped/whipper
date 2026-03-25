@@ -7,11 +7,11 @@ stdout: OK or FAILED
 import argparse
 import sys
 
-from api import notion_patch
+from api import notion_patch, to_uuid
 
 
 def update_status(page_id: str, status: str = None, iteration: int = None) -> str:
-    clean_id = page_id.replace("-", "")
+    uuid_id = to_uuid(page_id)
 
     properties = {}
     if status:
@@ -23,7 +23,7 @@ def update_status(page_id: str, status: str = None, iteration: int = None) -> st
         return "OK"
 
     body = {"properties": properties}
-    resp = notion_patch(f"/pages/{clean_id}", body)
+    resp = notion_patch(f"/pages/{uuid_id}", body)
 
     if resp is None:
         return "FAILED"

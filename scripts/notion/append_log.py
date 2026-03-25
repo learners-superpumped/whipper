@@ -9,16 +9,15 @@ stdout: OK or FAILED
 """
 import sys
 
-from api import notion_patch
+from api import notion_patch, to_uuid
 
 
 def append_log(page_id: str, message: str) -> str:
     """Append a paragraph block to the given Notion page."""
     # Notion block append endpoint
     # page_id can be with or without dashes
-    clean_id = page_id.replace("-", "")
+    uuid_id = to_uuid(page_id)
 
-    # Split message into chunks of 2000 chars (Notion limit per rich_text element)
     chunks = []
     for i in range(0, len(message), 2000):
         chunks.append(message[i : i + 2000])
@@ -36,7 +35,7 @@ def append_log(page_id: str, message: str) -> str:
         )
 
     body = {"children": blocks}
-    resp = notion_patch(f"/blocks/{clean_id}/children", body)
+    resp = notion_patch(f"/blocks/{uuid_id}/children", body)
 
     if resp is None:
         return "FAILED"

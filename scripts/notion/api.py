@@ -15,7 +15,7 @@ except ImportError:
     sys.exit(1)
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "notion.json"
-NOTION_API = "https://api.notion.com/v1"
+NOTION_API = "https://api.notion.com/v1/"
 NOTION_VERSION = "2022-06-28"
 
 
@@ -45,12 +45,20 @@ def get_database_id() -> str | None:
     return cfg.get("database_id")
 
 
+def to_uuid(page_id: str) -> str:
+    """Convert 32-char hex to UUID format with hyphens. Pass-through if already has hyphens."""
+    pid = page_id.replace("-", "")
+    if len(pid) == 32:
+        return f"{pid[:8]}-{pid[8:12]}-{pid[12:16]}-{pid[16:20]}-{pid[20:]}"
+    return page_id
+
+
 def notion_post(endpoint: str, body: dict) -> requests.Response | None:
     """POST to Notion API. Returns Response or None on auth failure."""
     headers = get_headers()
     if not headers:
         return None
-    return requests.post(f"{NOTION_API}{endpoint}", headers=headers, json=body)
+    return requests.post(f"{NOTION_API}{endpoint.lstrip('/')}", headers=headers, json=body)
 
 
 def notion_patch(endpoint: str, body: dict) -> requests.Response | None:
@@ -58,7 +66,7 @@ def notion_patch(endpoint: str, body: dict) -> requests.Response | None:
     headers = get_headers()
     if not headers:
         return None
-    return requests.patch(f"{NOTION_API}{endpoint}", headers=headers, json=body)
+    return requests.patch(f"{NOTION_API}{endpoint.lstrip('/')}", headers=headers, json=body)
 
 
 def notion_get(endpoint: str, params: dict = None) -> requests.Response | None:
@@ -66,4 +74,4 @@ def notion_get(endpoint: str, params: dict = None) -> requests.Response | None:
     headers = get_headers()
     if not headers:
         return None
-    return requests.get(f"{NOTION_API}{endpoint}", headers=headers, params=params)
+    return requests.get(f"{NOTION_API}{endpoint.lstrip('/')}", headers=headers, params=params)

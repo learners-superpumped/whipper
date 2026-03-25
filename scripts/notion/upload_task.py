@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from api import notion_patch
+from api import notion_patch, to_uuid
 
 
 def text_to_blocks(text, max_len=2000):
@@ -44,6 +44,7 @@ def upload_file(page_id, heading, content):
     """Append a heading + content blocks to the page."""
     if not content.strip():
         return
+    page_id = to_uuid(page_id)
     blocks = [heading_block(heading), *text_to_blocks(content), divider_block()]
     # Notion API limits 100 blocks per request
     for i in range(0, len(blocks), 100):
@@ -100,7 +101,7 @@ def main():
         upload_all(args.page_id, args.task_dir)
 
     if args.status:
-        notion_patch(f"pages/{args.page_id}", {
+        notion_patch(f"pages/{to_uuid(args.page_id)}", {
             "properties": {"Status": {"select": {"name": args.status}}}
         })
 
