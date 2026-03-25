@@ -65,30 +65,17 @@
 
 {task_dir}/README.md에 매핑표와 성공기준을 함께 기록한다.
 
-### Notion 프로젝트 페이지 생성 (선택)
+### (자동) Notion 프로젝트 페이지
 
-config/notion.json의 database_id가 있으면:
-1. create_page.py로 프로젝트 페이지 생성:
-   ```bash
-   NOTION_RESULT=$(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/notion/create_page.py --name "요약 30자" --skill whip --slack-url "$SLACK_URL" --content "성공기준 텍스트")
-   PAGE_ID=$(echo $NOTION_RESULT | cut -d' ' -f1)
-   NOTION_URL=$(echo $NOTION_RESULT | cut -d' ' -f2)
-   ```
-2. 생성된 page_id를 .claude/whipper.local.md의 notion_page_id에 sed로 기록:
-   `sed -i '' "s/^notion_page_id: .*/notion_page_id: \"$PAGE_ID\"/" .claude/whipper.local.md`
-3. 매핑표와 성공기준을 Notion 페이지에 추가:
-   ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/notion/append_log.py "$PAGE_ID" "내용"
-   ```
-
-database_id가 없으면: 건너뜀 (기존 동작 그대로)
+Notion 페이지 생성은 데몬이 자동으로 처리한다. Manager가 직접 생성하지 않는다.
+Notion URL은 task_dir에 `.notion_page_id` 파일이 있으면, `https://www.notion.so/{page_id}` 형식으로 구성한다.
 
 ### 2.5단계: Slack 성공기준 보고 (필수)
 
 Slack 컨텍스트(CHANNEL, THREAD_TS)가 있으면, **반드시** post.sh로 스레드에 보고한다.
 이 단계를 절대 건너뛰지 않는다.
 
-Notion 페이지를 생성했다면 notion_page_id를 사용하여 아래와 같이 보고:
+Notion URL 구성: `cat ${TASK_DIR}/.notion_page_id` 로 page_id를 읽어서 `https://www.notion.so/{page_id}`로:
 
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/slack/post.sh "$TASK_DIR" "CHANNEL" "THREAD_TS" "📋 *성공기준 정의 완료*

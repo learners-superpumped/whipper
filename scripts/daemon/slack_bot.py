@@ -91,9 +91,9 @@ def create_app():
                     cwd=os.path.expanduser("~"),
                 )
 
-                # 브릿지: setup.sh가 task_dir을 만들면 감시 시작
-                # 최대 30초간 폴링하여 slack_messages/ 디렉토리를 찾음
+                # 브릿지 + Notion: task_dir이 생성되면 감시 시작 + Notion 페이지 생성
                 bridge_started = False
+                task_dir_found = ""
                 for _wait in range(6):
                     time.sleep(5)
                     candidates = [
@@ -101,13 +101,36 @@ def create_app():
                         if os.path.isdir(d) and os.path.isdir(d + "/slack_messages")
                     ]
                     if candidates:
-                        newest = max(candidates, key=os.path.getmtime)
-                        bridge.watch(newest, channel, thread_ts)
-                        logger.info(f"Bridge started for: {newest}")
+                        task_dir_found = max(candidates, key=os.path.getmtime)
+                        bridge.watch(task_dir_found, channel, thread_ts)
+                        logger.info(f"Bridge started for: {task_dir_found}")
                         bridge_started = True
                         break
                 if not bridge_started:
                     logger.warning("No task_dir with slack_messages/ found after 30s")
+
+                # 데몬이 Notion 페이지 생성 (LLM 의존 제거)
+                notion_page_id = ""
+                if task_dir_found:
+                    try:
+                        slack_url = f"https://learnerscompany.slack.com/archives/{channel}/p{thread_ts.replace('.', '')}"
+                        name = prompt.split("]")[-1].strip()[:50] if "]" in prompt else prompt[:50]
+                        result = subprocess.run(
+                            [sys.executable, str(SCRIPTS_DIR / "notion" / "create_page.py"),
+                             "--name", name or "Whipper Task",
+                             "--skill", skill,
+                             "--slack-url", slack_url],
+                            capture_output=True, text=True, timeout=15,
+                        )
+                        parts = result.stdout.strip().split()
+                        if len(parts) >= 2 and parts[0] not in ("FAILED", "NO_DB", "NO_TOKEN"):
+                            notion_page_id = parts[0]
+                            notion_url = parts[1]
+                            # task_dir에 page_id 저장 (upload_task.py가 참조)
+                            Path(task_dir_found, ".notion_page_id").write_text(notion_page_id)
+                            logger.info(f"Notion page created: {notion_url}")
+                    except Exception as e:
+                        logger.warning(f"Notion page creation skipped: {e}")
 
                 # 프로세스 완료 대기 (30분 타임아웃, 5분 간격 핑)
                 # State 파일이 생성된 후 삭제되면 PASS → 60초 후 kill
@@ -116,7 +139,7 @@ def create_app():
                 last_ping = start
                 pass_detected_at = None
                 state_file_ever_existed = False
-                notion_page_id = ""
+                # notion_page_id는 위에서 데몬이 이미 생성/캐시
                 state_file = Path(os.path.expanduser("~")) / ".claude" / "whipper.local.md"
 
                 while process.poll() is None:
@@ -133,16 +156,6 @@ def create_app():
                     # State 파일 존재 추적
                     if state_file.exists():
                         state_file_ever_existed = True
-                        # notion_page_id 캐시 (state 파일이 삭제되기 전에)
-                        try:
-                            content = state_file.read_text()
-                            for line in content.split('\n'):
-                                if line.startswith('notion_page_id:'):
-                                    pid = line.split(':', 1)[1].strip().strip('"')
-                                    if pid:
-                                        notion_page_id = pid
-                        except Exception:
-                            pass
 
                     # PASS 감지: state 파일이 한번 존재했다가 삭제된 경우만
                     if state_file_ever_existed and not state_file.exists() and pass_detected_at is None:
