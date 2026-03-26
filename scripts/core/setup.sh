@@ -92,6 +92,7 @@ else
 fi
 
 TASK_DIR="/tmp/whipper-${TASK_ID}"
+STATE_FILE="${WHIPPER_STATE_FILE:-$HOME/.claude/whipper.local.md}"
 NOTION_PAGE_ID="${WHIPPER_NOTION_PAGE_ID:-}"
 THREAD_PAGE_MODE="${WHIPPER_THREAD_PAGE_MODE:-unknown}"
 THREAD_PAGE_NAME="$(yaml_escape "${WHIPPER_THREAD_PAGE_NAME:-}")"
@@ -102,8 +103,8 @@ THREAD_PAGE_STATUS="$(yaml_escape "${WHIPPER_THREAD_PAGE_STATUS:-}")"
 mkdir -p "$TASK_DIR/iterations" "$TASK_DIR/deliverables" "$TASK_DIR/resources" "$TASK_DIR/slack_messages"
 
 # Create state file
-mkdir -p .claude
-cat > .claude/whipper.local.md <<EOF
+mkdir -p "$(dirname "$STATE_FILE")"
+cat > "$STATE_FILE" <<EOF
 ---
 active: true
 skill: $SKILL

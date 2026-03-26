@@ -21,11 +21,21 @@ import sys
 sys.path.insert(0, str(ROOT_DIR))
 
 try:
-    from .claude_runtime import build_claude_print_command
+    from .claude_runtime import (
+        build_agent_exec_command,
+        fallback_agent_provider,
+        normalize_agent_provider,
+        should_retry_with_fallback,
+    )
     from .dispatch import load_slack_config, run_dispatch
     from . import run_lock as run_lock_module
 except ImportError:
-    from claude_runtime import build_claude_print_command
+    from claude_runtime import (
+        build_agent_exec_command,
+        fallback_agent_provider,
+        normalize_agent_provider,
+        should_retry_with_fallback,
+    )
     from dispatch import load_slack_config, run_dispatch
     import run_lock as run_lock_module
 from scripts.notion.api import (
@@ -403,11 +413,8 @@ def run_todo_check(config: dict | None = None) -> subprocess.CompletedProcess | 
         return None
 
     prompt = build_todo_prompt(cfg)
-    command = build_claude_print_command(
-        prompt,
-        ROOT_DIR,
-        permission_mode="bypassPermissions",
-    )
+    primary_provider = normalize_agent_provider()
+    secondary_provider = fallback_agent_provider()
 
     lock_handle = acquire_run_lock(blocking=False)
     if lock_handle is None:
@@ -415,17 +422,39 @@ def run_todo_check(config: dict | None = None) -> subprocess.CompletedProcess | 
         return None
 
     try:
-        claude_env = export_whipper_aliases(os.environ.copy())
-        claude_env["CLAUDE_PLUGIN_ROOT"] = str(ROOT_DIR)
-        result = subprocess.run(
-            command,
-            cwd=str(ROOT_DIR),
-            capture_output=True,
-            stdin=subprocess.DEVNULL,
-            text=True,
-            timeout=int(todo["timeout_seconds"]),
-            env=claude_env,
-        )
+        runtime_env = export_whipper_aliases(os.environ.copy())
+        runtime_env["CLAUDE_PLUGIN_ROOT"] = str(ROOT_DIR)
+
+        def run_provider(provider: str) -> subprocess.CompletedProcess:
+            command = build_agent_exec_command(
+                prompt,
+                ROOT_DIR,
+                provider=provider,
+                permission_mode="bypassPermissions",
+            )
+            return subprocess.run(
+                command,
+                cwd=str(ROOT_DIR),
+                capture_output=True,
+                stdin=subprocess.DEVNULL,
+                text=True,
+                timeout=int(todo["timeout_seconds"]),
+                env=runtime_env,
+            )
+
+        result = run_provider(primary_provider)
+        combined_output = result.stdout or result.stderr or ""
+        if should_retry_with_fallback(
+            primary_provider,
+            combined_output,
+            fallback_provider_name=secondary_provider,
+        ):
+            logger.warning(
+                "Todo follow-up check hit %s limit. Retrying with %s.",
+                primary_provider,
+                secondary_provider,
+            )
+            result = run_provider(secondary_provider)
     except subprocess.TimeoutExpired:
         logger.error(
             "Todo follow-up check timed out after %ss", todo["timeout_seconds"]

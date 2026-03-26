@@ -51,9 +51,10 @@ def main():
 
     # Extract grounding sources if available
     grounding = getattr(response.candidates[0], "grounding_metadata", None)
-    if grounding and hasattr(grounding, "grounding_chunks"):
+    grounding_chunks = getattr(grounding, "grounding_chunks", None) if grounding else None
+    if grounding_chunks:
         result += "\n\n## Sources\n"
-        for chunk in grounding.grounding_chunks:
+        for chunk in grounding_chunks:
             if hasattr(chunk, "web") and chunk.web:
                 result += f"- [{chunk.web.title}]({chunk.web.uri})\n"
 

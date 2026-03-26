@@ -83,3 +83,11 @@ def notion_get(endpoint: str, params: dict = None) -> requests.Response | None:
     if not headers:
         return None
     return requests.get(f"{NOTION_API}{endpoint.lstrip('/')}", headers=headers, params=params)
+
+
+def notion_delete(endpoint: str) -> requests.Response | None:
+    """DELETE from Notion API. Returns Response or None on auth failure."""
+    headers = get_headers()
+    if not headers:
+        return None
+    return requests.delete(f"{NOTION_API}{endpoint.lstrip('/')}", headers=headers)

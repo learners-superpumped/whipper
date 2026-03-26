@@ -9,6 +9,11 @@ resolve_state_file() {
     return
   fi
 
+  if [[ -f "$HOME/.claude/whipper.local.md" ]]; then
+    printf '%s\n' "$HOME/.claude/whipper.local.md"
+    return
+  fi
+
   if [[ -f ".claude/whipper.local.md" ]]; then
     printf '%s\n' ".claude/whipper.local.md"
     return

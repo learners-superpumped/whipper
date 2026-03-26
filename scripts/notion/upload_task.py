@@ -8,12 +8,19 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from api import notion_patch, to_uuid
+from api import notion_delete, notion_get, notion_patch, to_uuid
 
 
 def rich_text(text):
     """Create a rich_text element, truncated to 2000 chars."""
     return [{"type": "text", "text": {"content": text[:2000]}}]
+
+
+def ensure_notion_ok(resp, context: str) -> None:
+    if resp is None:
+        raise RuntimeError(f"Notion auth/config missing during {context}")
+    if resp.status_code >= 300:
+        raise RuntimeError(f"Notion API error during {context}: {resp.status_code} {resp.text}")
 
 
 def md_to_blocks(text):
@@ -158,7 +165,39 @@ def infer_final_summary(task_dir: str, status: str | None = None) -> str:
 
     if not lines:
         return ""
-    return "## 최종 상태 요약\n\n" + "\n".join(lines)
+    return "\n".join(lines)
+
+
+def list_child_blocks(page_or_block_id: str) -> list[dict]:
+    """Return all direct child blocks of a page or block."""
+    block_id = to_uuid(page_or_block_id)
+    cursor = None
+    results: list[dict] = []
+
+    while True:
+        params = {"page_size": 100}
+        if cursor:
+            params["start_cursor"] = cursor
+        resp = notion_get(f"blocks/{block_id}/children", params)
+        if resp is None or resp.status_code != 200:
+            break
+        data = resp.json()
+        results.extend(data.get("results", []))
+        if not data.get("has_more"):
+            break
+        cursor = data.get("next_cursor")
+
+    return results
+
+
+def clear_page_children(page_id: str) -> None:
+    """Delete all top-level blocks from the page so uploads are idempotent."""
+    for block in list_child_blocks(page_id):
+        block_id = block.get("id")
+        if not block_id:
+            continue
+        resp = notion_delete(f"blocks/{block_id}")
+        ensure_notion_ok(resp, f"delete block {block_id}")
 
 
 def upload_file(page_id, heading, content):
@@ -168,12 +207,21 @@ def upload_file(page_id, heading, content):
     page_id = to_uuid(page_id)
     blocks = [heading_block(heading), *md_to_blocks(content), divider_block()]
     for i in range(0, len(blocks), 100):
-        notion_patch(f"blocks/{page_id}/children", {"children": blocks[i:i + 100]})
+        resp = notion_patch(f"blocks/{page_id}/children", {"children": blocks[i:i + 100]})
+        ensure_notion_ok(resp, f"append blocks to page {page_id}")
+
+
+def _read_upload_content(path: Path) -> str:
+    try:
+        return path.read_text()
+    except UnicodeDecodeError:
+        return f"(바이너리 파일: {path.name}, {path.stat().st_size} bytes)"
 
 
 def upload_all(page_id, task_dir, status: str | None = None):
     """Upload everything in task_dir to the Notion page."""
     td = Path(task_dir)
+    clear_page_children(page_id)
 
     summary = infer_final_summary(task_dir, status=status)
     if summary:
@@ -192,16 +240,14 @@ def upload_all(page_id, task_dir, status: str | None = None):
     if deliv_dir.exists():
         for f in sorted(deliv_dir.glob("*")):
             if f.is_file():
-                try:
-                    content = f.read_text()
-                except UnicodeDecodeError:
-                    content = f"(바이너리 파일: {f.name}, {f.stat().st_size} bytes)"
+                content = _read_upload_content(f)
                 upload_file(page_id, f"📦 결과물: {f.name}", content)
 
     resources_dir = td / "resources"
     if resources_dir.exists():
-        for f in sorted(resources_dir.glob("*.md")):
-            upload_file(page_id, f"🔎 자료: {f.name}", f.read_text())
+        for f in sorted(resources_dir.glob("*")):
+            if f.is_file():
+                upload_file(page_id, f"🔎 자료: {f.name}", _read_upload_content(f))
 
 
 def upload_iteration(page_id, task_dir, iteration):
@@ -225,7 +271,8 @@ def update_page_properties(page_id, status=None, iteration=None):
         properties["Iteration"] = {"number": int(iteration)}
     if not properties:
         return
-    notion_patch(f"pages/{to_uuid(page_id)}", {"properties": properties})
+    resp = notion_patch(f"pages/{to_uuid(page_id)}", {"properties": properties})
+    ensure_notion_ok(resp, f"update page properties {page_id}")
 
 
 def main():

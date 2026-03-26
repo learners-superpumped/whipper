@@ -40,6 +40,7 @@ try:
     )
     from .run_lock import acquire_run_lock, release_run_lock
     from .scheduler import start_scheduler
+    from . import dispatch as dispatch_module
     from .dispatch import lookup_thread_page
 except ImportError:
     from claude_runtime import (
@@ -50,6 +51,7 @@ except ImportError:
     )
     from run_lock import acquire_run_lock, release_run_lock
     from scheduler import start_scheduler
+    import dispatch as dispatch_module
     from dispatch import lookup_thread_page
 
 
@@ -418,7 +420,8 @@ def run_dispatch(slack_client, bridge: SlackBridge, prompt: str, skill: str, cha
                     upload_args.extend(["--set-iteration", str(latest_iteration)])
                 subprocess.run(
                     upload_args,
-                    timeout=60,
+                    timeout=300,
+                    check=True,
                 )
                 logger.info(
                     "Notion upload complete: %s from %s (status=%s)",
@@ -452,7 +455,7 @@ def run_dispatch(slack_client, bridge: SlackBridge, prompt: str, skill: str, cha
 
 def spawn_dispatch(slack_client, bridge: SlackBridge, prompt: str, skill: str, channel: str, thread_ts: str):
     threading.Thread(
-        target=run_dispatch,
+        target=dispatch_module.run_dispatch,
         args=(slack_client, bridge, prompt, skill, channel, thread_ts),
         daemon=True,
     ).start()

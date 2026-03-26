@@ -3,6 +3,7 @@
 set -euo pipefail
 
 PLUGIN_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export WHIPPER_STATE_FILE=".claude/whipper.local.md"
 PASS=0
 FAIL=0
 

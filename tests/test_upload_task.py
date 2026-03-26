@@ -8,7 +8,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts" / "notion"))
 
-from upload_task import infer_final_summary, update_page_properties, upload_all, upload_iteration
+from upload_task import clear_page_children, infer_final_summary, update_page_properties, upload_all, upload_iteration
 
 
 def test_upload_iteration_accepts_zero_padded_and_plain_prefixes():
@@ -32,24 +32,31 @@ def test_upload_iteration_accepts_zero_padded_and_plain_prefixes():
         assert len(uploaded) == 2
 
 
-def test_upload_all_includes_resources_markdown():
+def test_upload_all_includes_resources_even_when_not_markdown():
     with tempfile.TemporaryDirectory() as tmp:
         task_dir = Path(tmp)
         (task_dir / "deliverables").mkdir()
         (task_dir / "resources").mkdir()
         (task_dir / "deliverables" / "answer.txt").write_text("done")
         (task_dir / "resources" / "cross-verification.md").write_text("checked")
+        (task_dir / "resources" / "diagram.png").write_bytes(b"\x89PNG\r\n")
 
         uploaded = []
 
         def fake_upload_file(_page_id, heading, content):
             uploaded.append((heading, content))
 
-        with patch("upload_task.upload_file", side_effect=fake_upload_file):
+        with patch("upload_task.upload_file", side_effect=fake_upload_file), patch(
+            "upload_task.clear_page_children"
+        ):
             upload_all("page-id", str(task_dir))
 
         assert ("📦 결과물: answer.txt", "done") in uploaded
         assert ("🔎 자료: cross-verification.md", "checked") in uploaded
+        assert any(
+            heading == "🔎 자료: diagram.png" and "바이너리 파일: diagram.png" in content
+            for heading, content in uploaded
+        )
 
 
 def test_update_page_properties_sets_status_and_iteration():
@@ -89,6 +96,34 @@ def test_infer_final_summary_uses_status_and_answer():
         assert "상태: 완료" in summary
         assert "최종 답변: 225" in summary
         assert "01-manager-eval.md" in summary
+        assert "## 최종 상태 요약" not in summary
+
+
+def test_clear_page_children_deletes_existing_blocks():
+    deleted = []
+
+    class FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {
+                "results": [
+                    {"id": "block-1"},
+                    {"id": "block-2"},
+                ],
+                "has_more": False,
+            }
+
+    with patch("upload_task.notion_get", return_value=FakeResp()), patch(
+        "upload_task.notion_delete",
+        side_effect=lambda endpoint: (deleted.append(endpoint), FakeResp())[1],
+    ):
+        clear_page_children("123456781234123412341234567890ab")
+
+    assert deleted == [
+        "blocks/block-1",
+        "blocks/block-2",
+    ]
 
 
 if __name__ == "__main__":
